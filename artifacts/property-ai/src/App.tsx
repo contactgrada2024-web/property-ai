@@ -10,6 +10,7 @@ import ResultsCard from "@/components/ResultsCard";
 import PropertyCard from "@/components/PropertyCard";
 import ComparisonTable from "@/components/ComparisonTable";
 import AmortizationChart from "@/components/AmortizationChart";
+import BreakEvenCalculator from "@/components/BreakEvenCalculator";
 import { defaultPropertyData, calculatePropertyMetrics, generateAmortization, PropertyData } from "@/lib/calculations";
 import { exportSinglePropertyPdf, exportComparisonPdf } from "@/lib/exportPdf";
 import { Radar, Plus, BarChart2, SlidersHorizontal, Download, Loader2, ChevronDown, ChevronUp } from "lucide-react";
@@ -68,6 +69,7 @@ function Home() {
   const singleResults = useMemo(() => calculatePropertyMetrics(singleData), [singleData]);
   const amortizationSummary = useMemo(() => generateAmortization(singleData), [singleData]);
   const [showAmortization, setShowAmortization] = useState(true);
+  const [showBreakEven, setShowBreakEven] = useState(true);
   const [exportingAnalyze, setExportingAnalyze] = useState(false);
 
   // Compare mode state
@@ -255,6 +257,36 @@ function Home() {
                     className="overflow-hidden"
                   >
                     <AmortizationChart summary={amortizationSummary} data={singleData} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Break-even section */}
+            <div className="mt-6 space-y-4">
+              <button
+                onClick={() => setShowBreakEven((v) => !v)}
+                data-testid="button-toggle-breakeven"
+                className="flex items-center gap-2 w-full text-left group"
+              >
+                <div className="flex-1 h-px bg-border/50" />
+                <span className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-border/60 bg-card/40 text-xs font-semibold uppercase tracking-widest text-muted-foreground group-hover:text-foreground group-hover:border-primary/40 transition-all">
+                  Break-Even Rent Calculator
+                  {showBreakEven ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                </span>
+                <div className="flex-1 h-px bg-border/50" />
+              </button>
+
+              <AnimatePresence>
+                {showBreakEven && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="overflow-hidden"
+                  >
+                    <BreakEvenCalculator data={singleData} />
                   </motion.div>
                 )}
               </AnimatePresence>
