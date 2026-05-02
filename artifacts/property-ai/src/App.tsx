@@ -3,6 +3,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
+import AuthPage from "@/pages/AuthPage";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { useState, useMemo, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import PropertyForm from "@/components/PropertyForm";
@@ -13,9 +15,40 @@ import AmortizationChart from "@/components/AmortizationChart";
 import BreakEvenCalculator from "@/components/BreakEvenCalculator";
 import { defaultPropertyData, calculatePropertyMetrics, generateAmortization, PropertyData } from "@/lib/calculations";
 import { exportSinglePropertyPdf, exportComparisonPdf } from "@/lib/exportPdf";
-import { Radar, Plus, BarChart2, SlidersHorizontal, Download, Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { Radar, Plus, BarChart2, SlidersHorizontal, Download, Loader2, ChevronDown, ChevronUp, LogOut } from "lucide-react";
 
 const queryClient = new QueryClient();
+
+function UserNav() {
+  const { user, signOut } = useAuth();
+  const [signingOut, setSigningOut] = useState(false);
+
+  async function handleSignOut() {
+    setSigningOut(true);
+    await signOut();
+    setSigningOut(false);
+  }
+
+  if (!user) return null;
+
+  return (
+    <div className="flex items-center gap-2.5">
+      <span className="text-[11px] font-mono text-muted-foreground hidden sm:block max-w-[160px] truncate">
+        {user.email}
+      </span>
+      <button
+        onClick={handleSignOut}
+        disabled={signingOut}
+        data-testid="btn-signout"
+        title="Sign out"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border/50 bg-card/40 text-xs text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all disabled:opacity-50"
+      >
+        {signingOut ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LogOut className="h-3.5 w-3.5" />}
+        <span className="hidden sm:inline">Sign out</span>
+      </button>
+    </div>
+  );
+}
 
 interface PropertyEntry {
   id: string;
@@ -167,9 +200,7 @@ function Home() {
             </button>
           </div>
 
-          <div className="text-xs font-mono text-muted-foreground hidden sm:block">
-            TERMINAL v1.0 // ACTIVE
-          </div>
+          <UserNav />
         </div>
       </header>
 
@@ -356,7 +387,21 @@ function Home() {
   );
 }
 
-function Router() {
+function AuthGate() {
+  const { session, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <AuthPage />;
+  }
+
   return (
     <Switch>
       <Route path="/" component={Home} />
@@ -368,12 +413,14 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <AuthGate />
+          </WouterRouter>
+          <Toaster />
+        </TooltipProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
