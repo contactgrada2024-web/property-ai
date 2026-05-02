@@ -15,7 +15,8 @@ import AmortizationChart from "@/components/AmortizationChart";
 import BreakEvenCalculator from "@/components/BreakEvenCalculator";
 import { defaultPropertyData, calculatePropertyMetrics, generateAmortization, PropertyData } from "@/lib/calculations";
 import { exportSinglePropertyPdf, exportComparisonPdf } from "@/lib/exportPdf";
-import { Radar, Plus, BarChart2, SlidersHorizontal, Download, Loader2, ChevronDown, ChevronUp, LogOut } from "lucide-react";
+import { usePortfolio } from "@/hooks/usePortfolio";
+import { Radar, Plus, BarChart2, SlidersHorizontal, Download, Loader2, ChevronDown, ChevronUp, LogOut, Cloud, CloudOff, Check, AlertCircle, Terminal } from "lucide-react";
 
 const queryClient = new QueryClient();
 
@@ -56,13 +57,38 @@ interface PropertyEntry {
   data: PropertyData;
 }
 
-function makeId() {
-  return Math.random().toString(36).slice(2, 8);
+function SaveStatusIndicator({ status }: { status: "idle" | "saving" | "saved" | "error" }) {
+  if (status === "idle") return null;
+  return (
+    <div className="flex items-center gap-1.5 text-[10px] font-mono px-2">
+      {status === "saving" && <><Cloud className="h-3 w-3 text-muted-foreground animate-pulse" /><span className="text-muted-foreground">Saving…</span></>}
+      {status === "saved"  && <><Check className="h-3 w-3 text-emerald-400" /><span className="text-emerald-400">Saved</span></>}
+      {status === "error"  && <><CloudOff className="h-3 w-3 text-rose-400" /><span className="text-rose-400">Save failed</span></>}
+    </div>
+  );
 }
 
-function makeDefault(index: number): PropertyEntry {
-  const names = ["Property A", "Property B", "Property C", "Property D"];
-  return { id: makeId(), name: names[index] ?? `Property ${index + 1}`, data: { ...defaultPropertyData } };
+function SetupBanner() {
+  return (
+    <div className="m-6 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-6 space-y-4">
+      <div className="flex items-center gap-2">
+        <AlertCircle className="h-5 w-5 text-amber-400" />
+        <p className="font-semibold text-amber-300">One-time database setup required</p>
+      </div>
+      <p className="text-sm text-muted-foreground">
+        To persist your portfolio across sessions, run the following SQL once in your{" "}
+        <a href="https://supabase.com/dashboard" target="_blank" rel="noreferrer" className="text-primary underline underline-offset-2">
+          Supabase dashboard
+        </a>{" "}
+        → SQL Editor → New query, then refresh this page.
+      </p>
+      <pre className="text-[11px] font-mono bg-background/60 border border-border/50 rounded-xl p-4 overflow-x-auto text-foreground/80 select-all whitespace-pre-wrap">{`-- See supabase_setup.sql in the project root for the full script
+-- Or copy from: artifacts/property-ai/supabase_setup.sql`}</pre>
+      <p className="text-xs text-muted-foreground">
+        The full SQL is in <code className="text-primary">artifacts/property-ai/supabase_setup.sql</code>
+      </p>
+    </div>
+  );
 }
 
 function ExportButton({
@@ -95,38 +121,28 @@ function ExportButton({
 
 function Home() {
   const [mode, setMode] = useState<"analyze" | "compare">("analyze");
-
-  // Analyze mode state
-  const [singleName, setSingleName] = useState("My Property");
-  const [singleData, setSingleData] = useState<PropertyData>(defaultPropertyData);
-  const singleResults = useMemo(() => calculatePropertyMetrics(singleData), [singleData]);
-  const amortizationSummary = useMemo(() => generateAmortization(singleData), [singleData]);
   const [showAmortization, setShowAmortization] = useState(true);
   const [showBreakEven, setShowBreakEven] = useState(true);
   const [exportingAnalyze, setExportingAnalyze] = useState(false);
-
-  // Compare mode state
-  const [properties, setProperties] = useState<PropertyEntry[]>([makeDefault(0), makeDefault(1)]);
   const [exportingCompare, setExportingCompare] = useState(false);
 
-  const handleNameChange = useCallback((id: string, name: string) => {
-    setProperties((prev) => prev.map((p) => (p.id === id ? { ...p, name } : p)));
-  }, []);
+  const {
+    analyzeName: singleName,
+    analyzeData: singleData,
+    setAnalyzeName: setSingleName,
+    setAnalyzeData: setSingleData,
+    compareProperties: properties,
+    addCompareProperty: handleAdd,
+    removeCompareProperty: handleRemove,
+    updateComparePropertyName: handleNameChange,
+    updateComparePropertyData: handleDataChange,
+    loading,
+    saveStatus,
+    dbError,
+  } = usePortfolio();
 
-  const handleDataChange = useCallback((id: string, data: PropertyData) => {
-    setProperties((prev) => prev.map((p) => (p.id === id ? { ...p, data } : p)));
-  }, []);
-
-  const handleRemove = useCallback((id: string) => {
-    setProperties((prev) => (prev.length > 2 ? prev.filter((p) => p.id !== id) : prev));
-  }, []);
-
-  const handleAdd = useCallback(() => {
-    setProperties((prev) => {
-      if (prev.length >= 4) return prev;
-      return [...prev, makeDefault(prev.length)];
-    });
-  }, []);
+  const singleResults = useMemo(() => calculatePropertyMetrics(singleData), [singleData]);
+  const amortizationSummary = useMemo(() => generateAmortization(singleData), [singleData]);
 
   const comparisonEntries = useMemo(
     () => properties.map((p) => ({ id: p.id, name: p.name, results: calculatePropertyMetrics(p.data) })),
@@ -200,12 +216,36 @@ function Home() {
             </button>
           </div>
 
-          <UserNav />
+          <div className="flex items-center gap-2">
+            <SaveStatusIndicator status={saveStatus} />
+            <UserNav />
+          </div>
         </div>
       </header>
 
+      {/* Loading skeleton */}
+      {loading && (
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="flex flex-col items-center gap-3 text-muted-foreground">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm">Loading your portfolio…</p>
+          </div>
+        </div>
+      )}
+
+      {/* Setup required banner */}
+      {!loading && dbError === "setup_required" && <SetupBanner />}
+
+      {/* Generic DB error */}
+      {!loading && dbError && dbError !== "setup_required" && (
+        <div className="m-6 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-5 flex items-center gap-3">
+          <AlertCircle className="h-5 w-5 text-rose-400 shrink-0" />
+          <p className="text-sm text-rose-300">Database error: {dbError}</p>
+        </div>
+      )}
+
       <AnimatePresence mode="wait">
-        {mode === "analyze" ? (
+      {(!loading && !dbError) && (mode === "analyze" ? (
           <motion.main
             key="analyze"
             initial={{ opacity: 0, y: 8 }}
@@ -381,7 +421,8 @@ function Home() {
 
             <ComparisonTable properties={comparisonEntries} />
           </motion.main>
-        )}
+        )
+      )}
       </AnimatePresence>
     </div>
   );
