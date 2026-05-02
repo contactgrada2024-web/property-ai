@@ -1,6 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { CalculationResults, PropertyData, formatCurrency } from "./calculations";
+import { AmortizationSummary, CalculationResults, PropertyData, formatCurrency } from "./calculations";
 
 const NAVY = [13, 22, 38] as [number, number, number];
 const TEAL = [0, 190, 165] as [number, number, number];
@@ -27,6 +27,16 @@ const RED   = [220, 38, 38]  as [number, number, number];
 
 function fmt(v: number) { return `${v.toFixed(1)}%`; }
 function fmtScore(v: number) { return `${v.toFixed(1)} / 2.0`; }
+function compact(v: number): string {
+  if (Math.abs(v) >= 1_000_000) return `$${(v / 1_000_000).toFixed(2)}M`;
+  if (Math.abs(v) >= 1_000) return `$${(v / 1_000).toFixed(0)}K`;
+  return formatCurrency(v);
+}
+
+const AMBER = [202, 138, 4] as [number, number, number];
+const EMERALD = [5, 150, 105] as [number, number, number];
+const BLUE_TEXT = [37, 99, 235] as [number, number, number];
+const ROSE = [220, 38, 38] as [number, number, number];
 
 function drawHeader(doc: jsPDF, subtitle: string, rightLabel: string) {
   const W = doc.internal.pageSize.getWidth();
@@ -158,7 +168,8 @@ function drawMetricsGrid(
 export function exportSinglePropertyPdf(
   propertyName: string,
   data: PropertyData,
-  results: CalculationResults
+  results: CalculationResults,
+  amortization?: AmortizationSummary
 ) {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
@@ -215,6 +226,7 @@ export function exportSinglePropertyPdf(
       ["Current Market Value",     formatCurrency(data.currentValue)],
       ["Original Purchase Price",  formatCurrency(data.purchasePrice)],
       ["Outstanding Mortgage",     formatCurrency(data.mortgageBalance)],
+      ["Mortgage Interest Rate",   `${data.interestRate}%`],
       ["Monthly Rental Income",    formatCurrency(data.rentalIncome)],
       ["Monthly Mortgage Payment", formatCurrency(data.mortgagePayment)],
       ["Monthly Property Tax",     formatCurrency(data.propertyTax)],
@@ -231,6 +243,97 @@ export function exportSinglePropertyPdf(
   });
 
   drawFooter(doc);
+
+  // ── Amortization page ──────────────────────────────────────────────────────
+  if (amortization && amortization.rows.length > 0) {
+    doc.addPage();
+    drawHeader(doc, "Mortgage Amortization Schedule", propertyName);
+
+    let ay = 46;
+
+    // Summary stats
+    ay = sectionLabel(doc, "Amortization Summary", ay);
+
+    const payoffLabel = amortization.paysOff
+      ? amortization.payoffYears > 0
+        ? `${amortization.payoffYears}y ${amortization.payoffMonths}m`
+        : `${amortization.payoffMonths} months`
+      : "> 30 years";
+
+    const lastRow = amortization.rows[amortization.rows.length - 1];
+
+    ay = drawMetricsGrid(doc, [
+      {
+        label: "Payoff Timeline",
+        value: payoffLabel,
+        sub: amortization.paysOff ? "until mortgage-free" : "payment too low",
+        color: TEAL,
+      },
+      {
+        label: "Total Interest Paid",
+        value: compact(amortization.totalInterestPaid),
+        sub: "over life of loan",
+        color: AMBER,
+      },
+      {
+        label: "1st Month: Interest",
+        value: formatCurrency(amortization.firstMonthInterest),
+        sub: `of ${formatCurrency(data.mortgagePayment)} payment`,
+        color: ROSE,
+      },
+      {
+        label: "1st Month: Principal",
+        value: formatCurrency(amortization.firstMonthPrincipal),
+        sub: `${((amortization.firstMonthPrincipal / data.mortgagePayment) * 100).toFixed(1)}% of payment`,
+        color: EMERALD,
+      },
+      {
+        label: "Total Principal Paid",
+        value: compact(amortization.totalPrincipalPaid),
+        color: BLUE_TEXT,
+      },
+      {
+        label: "Equity at Payoff",
+        value: compact(lastRow.totalEquity),
+        sub: "incl. appreciation",
+        color: GREEN,
+      },
+    ], ay, 3);
+
+    ay = sectionLabel(doc, "Year-by-Year Schedule", ay);
+
+    const tableRows = amortization.rows.map((r) => [
+      String(r.year),
+      compact(r.remainingBalance),
+      compact(r.yearlyPrincipal),
+      compact(r.yearlyInterest),
+      compact(r.cumulativePrincipal),
+      compact(r.cumulativeInterest),
+      compact(r.propertyValue),
+      compact(r.totalEquity),
+    ]);
+
+    autoTable(doc, {
+      startY: ay,
+      margin: { left: 14, right: 14 },
+      head: [["Year", "Balance", "Yr Principal", "Yr Interest", "Cum. Principal", "Cum. Interest", "Prop. Value", "Total Equity"]],
+      body: tableRows,
+      styles: { fontSize: 7, cellPadding: 2, textColor: DARK_GRAY, halign: "right" },
+      headStyles: { fillColor: NAVY, textColor: WHITE, fontStyle: "bold", fontSize: 6.5 },
+      alternateRowStyles: { fillColor: OFF_WHITE },
+      columnStyles: {
+        0: { halign: "center", fontStyle: "bold", cellWidth: 12 },
+        1: { textColor: BLUE_TEXT as [number, number, number] },
+        2: { textColor: EMERALD as [number, number, number] },
+        3: { textColor: AMBER as [number, number, number] },
+        5: { textColor: ROSE as [number, number, number] },
+        7: { textColor: GREEN as [number, number, number], fontStyle: "bold" },
+      },
+    });
+
+    drawFooter(doc);
+  }
+
   doc.save(`PropertyAI_${propertyName.replace(/\s+/g, "_")}_Report.pdf`);
 }
 
@@ -288,12 +391,13 @@ export function exportComparisonPdf(
     ...metricDefs.map(({ label, get, fmt: f }) =>
       [label, ...properties.map(p => f(get(p.results)))]
     ),
-    ["Strategy Signal", ...properties.map(p => p.results.strategySignal)],
-    ["Current Value",   ...properties.map(p => formatCurrency(p.data.currentValue))],
-    ["Purchase Price",  ...properties.map(p => formatCurrency(p.data.purchasePrice))],
-    ["Mortgage Balance",...properties.map(p => formatCurrency(p.data.mortgageBalance))],
-    ["Monthly Rent",    ...properties.map(p => formatCurrency(p.data.rentalIncome))],
-    ["Total Expenses",  ...properties.map(p => formatCurrency(p.results.monthlyExpenses))],
+    ["Strategy Signal",  ...properties.map(p => p.results.strategySignal)],
+    ["Current Value",    ...properties.map(p => formatCurrency(p.data.currentValue))],
+    ["Purchase Price",   ...properties.map(p => formatCurrency(p.data.purchasePrice))],
+    ["Mortgage Balance", ...properties.map(p => formatCurrency(p.data.mortgageBalance))],
+    ["Interest Rate",    ...properties.map(p => `${p.data.interestRate}%`)],
+    ["Monthly Rent",     ...properties.map(p => formatCurrency(p.data.rentalIncome))],
+    ["Total Expenses",   ...properties.map(p => formatCurrency(p.results.monthlyExpenses))],
   ];
 
   autoTable(doc, {

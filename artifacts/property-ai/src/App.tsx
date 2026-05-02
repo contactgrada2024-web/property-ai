@@ -102,7 +102,7 @@ function Home() {
     setExportingAnalyze(true);
     setTimeout(() => {
       try {
-        exportSinglePropertyPdf(singleName || "My Property", singleData, singleResults);
+        exportSinglePropertyPdf(singleName || "My Property", singleData, singleResults, amortizationSummary);
       } finally {
         setExportingAnalyze(false);
       }
