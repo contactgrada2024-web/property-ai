@@ -143,6 +143,7 @@ export default function PropertyCard({
             <FieldInput control={form.control} name="currentValue" label="Current Value" prefix testId={`input-cv-${id}`} />
             <FieldInput control={form.control} name="purchasePrice" label="Purchase Price" prefix testId={`input-pp-${id}`} />
             <FieldInput control={form.control} name="mortgageBalance" label="Mortgage Balance" prefix testId={`input-mb-${id}`} />
+            <FieldInput control={form.control} name="interestRate" label="Interest Rate %" suffix step="0.1" testId={`input-ir-${id}`} />
             <FieldInput control={form.control} name="rentalIncome" label="Monthly Rent" prefix testId={`input-ri-${id}`} />
             <FieldInput control={form.control} name="mortgagePayment" label="Mortgage Payment" prefix testId={`input-mp-${id}`} />
             <FieldInput control={form.control} name="propertyTax" label="Property Tax" prefix testId={`input-pt-${id}`} />

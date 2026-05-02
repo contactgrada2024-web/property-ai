@@ -10,7 +10,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { DollarSign, Building2, TrendingUp, Percent, Wallet, FileText, Wrench } from "lucide-react";
+import { DollarSign, Building2, TrendingUp, Percent, Wallet } from "lucide-react";
 import { useEffect } from "react";
 
 interface PropertyFormProps {
@@ -86,6 +86,22 @@ export default function PropertyForm({ onChange }: PropertyFormProps) {
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input type="number" className="pl-9 font-mono" data-testid="input-mortgage-balance" {...field} />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="interestRate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">Interest Rate</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Percent className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input type="number" step="0.1" className="pr-9 font-mono" data-testid="input-interest-rate" {...field} />
                     </div>
                   </FormControl>
                   <FormMessage />

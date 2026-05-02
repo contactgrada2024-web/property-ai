@@ -9,9 +9,10 @@ import PropertyForm from "@/components/PropertyForm";
 import ResultsCard from "@/components/ResultsCard";
 import PropertyCard from "@/components/PropertyCard";
 import ComparisonTable from "@/components/ComparisonTable";
-import { defaultPropertyData, calculatePropertyMetrics, PropertyData } from "@/lib/calculations";
+import AmortizationChart from "@/components/AmortizationChart";
+import { defaultPropertyData, calculatePropertyMetrics, generateAmortization, PropertyData } from "@/lib/calculations";
 import { exportSinglePropertyPdf, exportComparisonPdf } from "@/lib/exportPdf";
-import { Radar, Plus, BarChart2, SlidersHorizontal, Download, Loader2 } from "lucide-react";
+import { Radar, Plus, BarChart2, SlidersHorizontal, Download, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 
 const queryClient = new QueryClient();
 
@@ -65,6 +66,8 @@ function Home() {
   const [singleName, setSingleName] = useState("My Property");
   const [singleData, setSingleData] = useState<PropertyData>(defaultPropertyData);
   const singleResults = useMemo(() => calculatePropertyMetrics(singleData), [singleData]);
+  const amortizationSummary = useMemo(() => generateAmortization(singleData), [singleData]);
+  const [showAmortization, setShowAmortization] = useState(true);
   const [exportingAnalyze, setExportingAnalyze] = useState(false);
 
   // Compare mode state
@@ -225,6 +228,36 @@ function Home() {
               <div className="lg:col-span-5 lg:sticky lg:top-24">
                 <ResultsCard results={singleResults} />
               </div>
+            </div>
+
+            {/* Amortization section */}
+            <div className="mt-10 space-y-4">
+              <button
+                onClick={() => setShowAmortization((v) => !v)}
+                data-testid="button-toggle-amortization"
+                className="flex items-center gap-2 w-full text-left group"
+              >
+                <div className="flex-1 h-px bg-border/50" />
+                <span className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-border/60 bg-card/40 text-xs font-semibold uppercase tracking-widest text-muted-foreground group-hover:text-foreground group-hover:border-primary/40 transition-all">
+                  Amortization Schedule
+                  {showAmortization ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                </span>
+                <div className="flex-1 h-px bg-border/50" />
+              </button>
+
+              <AnimatePresence>
+                {showAmortization && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="overflow-hidden"
+                  >
+                    <AmortizationChart summary={amortizationSummary} data={singleData} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </motion.main>
         ) : (
