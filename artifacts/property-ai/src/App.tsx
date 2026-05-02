@@ -10,7 +10,8 @@ import ResultsCard from "@/components/ResultsCard";
 import PropertyCard from "@/components/PropertyCard";
 import ComparisonTable from "@/components/ComparisonTable";
 import { defaultPropertyData, calculatePropertyMetrics, PropertyData } from "@/lib/calculations";
-import { Radar, Plus, BarChart2, SlidersHorizontal } from "lucide-react";
+import { exportSinglePropertyPdf, exportComparisonPdf } from "@/lib/exportPdf";
+import { Radar, Plus, BarChart2, SlidersHorizontal, Download, Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
 
@@ -29,13 +30,46 @@ function makeDefault(index: number): PropertyEntry {
   return { id: makeId(), name: names[index] ?? `Property ${index + 1}`, data: { ...defaultPropertyData } };
 }
 
+function ExportButton({
+  onClick,
+  loading,
+  label,
+  "data-testid": testId,
+}: {
+  onClick: () => void;
+  loading: boolean;
+  label: string;
+  "data-testid"?: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={loading}
+      data-testid={testId}
+      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
+    >
+      {loading ? (
+        <Loader2 className="h-4 w-4 animate-spin" />
+      ) : (
+        <Download className="h-4 w-4" />
+      )}
+      {label}
+    </button>
+  );
+}
+
 function Home() {
   const [mode, setMode] = useState<"analyze" | "compare">("analyze");
 
+  // Analyze mode state
+  const [singleName, setSingleName] = useState("My Property");
   const [singleData, setSingleData] = useState<PropertyData>(defaultPropertyData);
   const singleResults = useMemo(() => calculatePropertyMetrics(singleData), [singleData]);
+  const [exportingAnalyze, setExportingAnalyze] = useState(false);
 
+  // Compare mode state
   const [properties, setProperties] = useState<PropertyEntry[]>([makeDefault(0), makeDefault(1)]);
+  const [exportingCompare, setExportingCompare] = useState(false);
 
   const handleNameChange = useCallback((id: string, name: string) => {
     setProperties((prev) => prev.map((p) => (p.id === id ? { ...p, name } : p)));
@@ -60,6 +94,35 @@ function Home() {
     () => properties.map((p) => ({ id: p.id, name: p.name, results: calculatePropertyMetrics(p.data) })),
     [properties]
   );
+
+  function handleExportAnalyze() {
+    setExportingAnalyze(true);
+    setTimeout(() => {
+      try {
+        exportSinglePropertyPdf(singleName || "My Property", singleData, singleResults);
+      } finally {
+        setExportingAnalyze(false);
+      }
+    }, 50);
+  }
+
+  function handleExportCompare() {
+    setExportingCompare(true);
+    setTimeout(() => {
+      try {
+        exportComparisonPdf(
+          properties.map((p) => ({
+            id: p.id,
+            name: p.name,
+            data: p.data,
+            results: calculatePropertyMetrics(p.data),
+          }))
+        );
+      } finally {
+        setExportingCompare(false);
+      }
+    }, 50);
+  }
 
   return (
     <div className="min-h-[100dvh] w-full bg-background text-foreground selection:bg-primary/30 font-sans">
@@ -117,12 +180,44 @@ function Home() {
           >
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
               <div className="lg:col-span-7 space-y-6">
-                <div>
-                  <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">Asset Evaluation</h1>
-                  <p className="text-muted-foreground mt-2">
-                    Enter your property parameters to generate an instant strategic analysis.
-                  </p>
+                <div className="flex items-start justify-between gap-4 flex-wrap">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
+                        Asset Evaluation
+                      </h1>
+                    </div>
+                    <p className="text-muted-foreground">
+                      Enter your property parameters to generate an instant strategic analysis.
+                    </p>
+                  </div>
                 </div>
+
+                {/* Property name + export row */}
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <label className="text-[10px] text-muted-foreground uppercase tracking-widest block mb-1">
+                      Property Name
+                    </label>
+                    <input
+                      value={singleName}
+                      onChange={(e) => setSingleName(e.target.value)}
+                      className="w-full bg-card/30 border border-border/60 rounded-lg px-3 py-2 text-sm font-semibold text-foreground outline-none focus:border-primary transition-colors"
+                      placeholder="e.g. 123 Main St"
+                      maxLength={48}
+                      data-testid="input-single-property-name"
+                    />
+                  </div>
+                  <div className="mt-5">
+                    <ExportButton
+                      onClick={handleExportAnalyze}
+                      loading={exportingAnalyze}
+                      label="Export PDF"
+                      data-testid="button-export-analyze"
+                    />
+                  </div>
+                </div>
+
                 <div className="bg-card/30 p-6 md:p-8 rounded-2xl border border-border/50">
                   <PropertyForm onChange={setSingleData} />
                 </div>
@@ -143,21 +238,31 @@ function Home() {
           >
             <div className="flex items-end justify-between gap-4 flex-wrap">
               <div>
-                <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">Portfolio Comparison</h1>
+                <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
+                  Portfolio Comparison
+                </h1>
                 <p className="text-muted-foreground mt-2">
                   Evaluate up to 4 properties side by side. Best values are highlighted automatically.
                 </p>
               </div>
-              {properties.length < 4 && (
-                <button
-                  onClick={handleAdd}
-                  data-testid="button-add-property"
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg border border-primary/50 text-primary text-sm font-semibold hover:bg-primary/10 transition-colors"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Property
-                </button>
-              )}
+              <div className="flex items-center gap-3">
+                {properties.length < 4 && (
+                  <button
+                    onClick={handleAdd}
+                    data-testid="button-add-property"
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg border border-primary/50 text-primary text-sm font-semibold hover:bg-primary/10 transition-colors"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Property
+                  </button>
+                )}
+                <ExportButton
+                  onClick={handleExportCompare}
+                  loading={exportingCompare}
+                  label="Export PDF"
+                  data-testid="button-export-compare"
+                />
+              </div>
             </div>
 
             <AnimatePresence>
