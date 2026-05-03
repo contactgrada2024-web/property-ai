@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
-import { Loader2, Mail, Lock, Eye, EyeOff, Building2, CheckCircle2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Loader2, Mail, Lock, Eye, EyeOff, Building2, CheckCircle2, Zap } from "lucide-react";
 
 type Tab = "signin" | "signup";
 
@@ -61,6 +62,7 @@ function FieldInput({
 }
 
 export default function AuthPage() {
+  const { enterDemoMode } = useAuth();
   const [tab, setTab] = useState<Tab>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -152,7 +154,7 @@ export default function AuthPage() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="w-full max-w-md"
+          className="w-full max-w-md space-y-4"
         >
           {/* Card */}
           <div className="bg-card/40 border border-border/60 rounded-2xl shadow-2xl overflow-hidden backdrop-blur-sm">
@@ -305,7 +307,25 @@ export default function AuthPage() {
             </div>
           </div>
 
-          <p className="text-center text-[10px] text-muted-foreground/50 mt-6">
+          {/* Try Demo */}
+          <div className="relative flex items-center gap-3">
+            <div className="flex-1 h-px bg-border/40" />
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground/60 font-mono">or</span>
+            <div className="flex-1 h-px bg-border/40" />
+          </div>
+
+          <motion.button
+            onClick={enterDemoMode}
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.98 }}
+            data-testid="btn-try-demo"
+            className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl border border-primary/30 bg-primary/5 text-primary text-sm font-semibold hover:bg-primary/10 hover:border-primary/50 transition-all shadow-sm"
+          >
+            <Zap className="h-4 w-4" />
+            Try Demo — no account needed
+          </motion.button>
+
+          <p className="text-center text-[10px] text-muted-foreground/50">
             PropertyAI · All data stays in your browser · Not financial advice
           </p>
         </motion.div>

@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/AuthPage";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import PropertyForm from "@/components/PropertyForm";
 import ResultsCard from "@/components/ResultsCard";
@@ -13,24 +13,52 @@ import PropertyCard from "@/components/PropertyCard";
 import ComparisonTable from "@/components/ComparisonTable";
 import AmortizationChart from "@/components/AmortizationChart";
 import BreakEvenCalculator from "@/components/BreakEvenCalculator";
-import { defaultPropertyData, calculatePropertyMetrics, generateAmortization, PropertyData } from "@/lib/calculations";
+import { calculatePropertyMetrics, generateAmortization, PropertyData } from "@/lib/calculations";
 import { exportSinglePropertyPdf, exportComparisonPdf } from "@/lib/exportPdf";
 import { usePortfolio } from "@/hooks/usePortfolio";
-import { Radar, Plus, BarChart2, SlidersHorizontal, Download, Loader2, ChevronDown, ChevronUp, LogOut, Cloud, CloudOff, Check, AlertCircle, Terminal } from "lucide-react";
+import {
+  Radar, Plus, BarChart2, SlidersHorizontal, Download, Loader2,
+  ChevronDown, ChevronUp, LogOut, Cloud, CloudOff, Check, AlertCircle,
+  Zap, UserPlus, LogIn, X,
+} from "lucide-react";
 
 const queryClient = new QueryClient();
 
+// ─── UserNav ──────────────────────────────────────────────────────────────────
+
 function UserNav() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, isDemoMode, exitDemoMode } = useAuth();
   const [signingOut, setSigningOut] = useState(false);
+
+  // Demo mode — show sign-in / create account buttons
+  if (isDemoMode) {
+    return (
+      <div className="flex items-center gap-2">
+        <button
+          onClick={exitDemoMode}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border/50 bg-card/40 text-xs text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all"
+        >
+          <LogIn className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Sign in</span>
+        </button>
+        <button
+          onClick={exitDemoMode}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-primary/50 bg-primary/10 text-xs text-primary hover:bg-primary/20 transition-all font-semibold"
+        >
+          <UserPlus className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Create account</span>
+        </button>
+      </div>
+    );
+  }
+
+  if (!user) return null;
 
   async function handleSignOut() {
     setSigningOut(true);
     await signOut();
     setSigningOut(false);
   }
-
-  if (!user) return null;
 
   return (
     <div className="flex items-center gap-2.5">
@@ -51,11 +79,7 @@ function UserNav() {
   );
 }
 
-interface PropertyEntry {
-  id: string;
-  name: string;
-  data: PropertyData;
-}
+// ─── SaveStatusIndicator ──────────────────────────────────────────────────────
 
 function SaveStatusIndicator({ status }: { status: "idle" | "saving" | "saved" | "error" }) {
   if (status === "idle") return null;
@@ -68,6 +92,45 @@ function SaveStatusIndicator({ status }: { status: "idle" | "saving" | "saved" |
   );
 }
 
+// ─── DemoBanner ───────────────────────────────────────────────────────────────
+
+function DemoBanner() {
+  const { exitDemoMode } = useAuth();
+  const [dismissed, setDismissed] = useState(false);
+  if (dismissed) return null;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="relative bg-primary/10 border-b border-primary/20 px-4 py-2.5 flex items-center justify-between gap-4"
+    >
+      <div className="flex items-center gap-2.5 flex-1 min-w-0">
+        <Zap className="h-4 w-4 text-primary shrink-0" />
+        <p className="text-xs text-foreground/80">
+          <span className="font-semibold text-primary">Demo mode</span>
+          {" — "}sample data loaded, edits are local only, and compare is limited to 2 properties.{" "}
+          <button
+            onClick={exitDemoMode}
+            className="text-primary underline underline-offset-2 hover:opacity-80 font-semibold transition-opacity"
+          >
+            Create a free account
+          </button>
+          {" "}to save your portfolio and unlock the full version.
+        </p>
+      </div>
+      <button
+        onClick={() => setDismissed(true)}
+        className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+        aria-label="Dismiss demo banner"
+      >
+        <X className="h-4 w-4" />
+      </button>
+    </motion.div>
+  );
+}
+
+// ─── SetupBanner ──────────────────────────────────────────────────────────────
+
 function SetupBanner() {
   return (
     <div className="m-6 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-6 space-y-4">
@@ -79,11 +142,9 @@ function SetupBanner() {
         To persist your portfolio across sessions, run the following SQL once in your{" "}
         <a href="https://supabase.com/dashboard" target="_blank" rel="noreferrer" className="text-primary underline underline-offset-2">
           Supabase dashboard
-        </a>{" "}
-        → SQL Editor → New query, then refresh this page.
+        </a>
+        {" "}→ SQL Editor → New query, then refresh this page.
       </p>
-      <pre className="text-[11px] font-mono bg-background/60 border border-border/50 rounded-xl p-4 overflow-x-auto text-foreground/80 select-all whitespace-pre-wrap">{`-- See supabase_setup.sql in the project root for the full script
--- Or copy from: artifacts/property-ai/supabase_setup.sql`}</pre>
       <p className="text-xs text-muted-foreground">
         The full SQL is in <code className="text-primary">artifacts/property-ai/supabase_setup.sql</code>
       </p>
@@ -91,35 +152,62 @@ function SetupBanner() {
   );
 }
 
+// ─── ExportButton ─────────────────────────────────────────────────────────────
+
 function ExportButton({
   onClick,
   loading,
   label,
+  demo,
   "data-testid": testId,
 }: {
   onClick: () => void;
   loading: boolean;
   label: string;
+  demo?: boolean;
   "data-testid"?: string;
 }) {
+  const [showDemoNote, setShowDemoNote] = useState(false);
+
+  function handleClick() {
+    if (demo) {
+      setShowDemoNote(true);
+      setTimeout(() => setShowDemoNote(false), 4000);
+    }
+    onClick();
+  }
+
   return (
-    <button
-      onClick={onClick}
-      disabled={loading}
-      data-testid={testId}
-      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
-    >
-      {loading ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      ) : (
-        <Download className="h-4 w-4" />
-      )}
-      {label}
-    </button>
+    <div className="relative">
+      <button
+        onClick={handleClick}
+        disabled={loading}
+        data-testid={testId}
+        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
+      >
+        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+        {label}
+      </button>
+      <AnimatePresence>
+        {showDemoNote && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="absolute right-0 top-full mt-2 z-50 w-64 rounded-xl border border-primary/30 bg-card/95 backdrop-blur-sm p-3 shadow-xl text-xs text-muted-foreground"
+          >
+            <p><span className="text-primary font-semibold">Demo export</span> — full branded PDFs with your logo and custom header are available on a full account.</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 
-function Home() {
+// ─── Home ─────────────────────────────────────────────────────────────────────
+
+function Home({ isDemoMode }: { isDemoMode: boolean }) {
+  const { exitDemoMode } = useAuth();
   const [mode, setMode] = useState<"analyze" | "compare">("analyze");
   const [showAmortization, setShowAmortization] = useState(true);
   const [showBreakEven, setShowBreakEven] = useState(true);
@@ -139,7 +227,7 @@ function Home() {
     loading,
     saveStatus,
     dbError,
-  } = usePortfolio();
+  } = usePortfolio({ demo: isDemoMode });
 
   const singleResults = useMemo(() => calculatePropertyMetrics(singleData), [singleData]);
   const amortizationSummary = useMemo(() => generateAmortization(singleData), [singleData]);
@@ -148,6 +236,9 @@ function Home() {
     () => properties.map((p) => ({ id: p.id, name: p.name, results: calculatePropertyMetrics(p.data) })),
     [properties]
   );
+
+  // In demo mode compare is limited to 2; full accounts can have up to 4
+  const maxProperties = isDemoMode ? 2 : 4;
 
   function handleExportAnalyze() {
     setExportingAnalyze(true);
@@ -180,6 +271,7 @@ function Home() {
 
   return (
     <div className="min-h-[100dvh] w-full bg-background text-foreground selection:bg-primary/30 font-sans">
+      {/* ── Header ── */}
       <header className="border-b border-border/50 bg-card/30 backdrop-blur-md sticky top-0 z-50">
         <div className="container mx-auto max-w-7xl px-4 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-primary">
@@ -217,13 +309,16 @@ function Home() {
           </div>
 
           <div className="flex items-center gap-2">
-            <SaveStatusIndicator status={saveStatus} />
+            {!isDemoMode && <SaveStatusIndicator status={saveStatus} />}
             <UserNav />
           </div>
         </div>
       </header>
 
-      {/* Loading skeleton */}
+      {/* ── Demo banner ── */}
+      {isDemoMode && <DemoBanner />}
+
+      {/* ── Loading ── */}
       {loading && (
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="flex flex-col items-center gap-3 text-muted-foreground">
@@ -233,10 +328,10 @@ function Home() {
         </div>
       )}
 
-      {/* Setup required banner */}
+      {/* ── Setup required (authenticated users who haven't run SQL yet) ── */}
       {!loading && dbError === "setup_required" && <SetupBanner />}
 
-      {/* Generic DB error */}
+      {/* ── Generic DB error ── */}
       {!loading && dbError && dbError !== "setup_required" && (
         <div className="m-6 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-5 flex items-center gap-3">
           <AlertCircle className="h-5 w-5 text-rose-400 shrink-0" />
@@ -244,8 +339,9 @@ function Home() {
         </div>
       )}
 
+      {/* ── Main content ── */}
       <AnimatePresence mode="wait">
-      {(!loading && !dbError) && (mode === "analyze" ? (
+        {(!loading && !dbError) && (mode === "analyze" ? (
           <motion.main
             key="analyze"
             initial={{ opacity: 0, y: 8 }}
@@ -258,12 +354,10 @@ function Home() {
               <div className="lg:col-span-7 space-y-6">
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
-                        Asset Evaluation
-                      </h1>
-                    </div>
-                    <p className="text-muted-foreground">
+                    <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
+                      Asset Evaluation
+                    </h1>
+                    <p className="text-muted-foreground mt-1">
                       Enter your property parameters to generate an instant strategic analysis.
                     </p>
                   </div>
@@ -289,6 +383,7 @@ function Home() {
                       onClick={handleExportAnalyze}
                       loading={exportingAnalyze}
                       label="Export PDF"
+                      demo={isDemoMode}
                       data-testid="button-export-analyze"
                     />
                   </div>
@@ -317,7 +412,6 @@ function Home() {
                 </span>
                 <div className="flex-1 h-px bg-border/50" />
               </button>
-
               <AnimatePresence>
                 {showAmortization && (
                   <motion.div
@@ -347,7 +441,6 @@ function Home() {
                 </span>
                 <div className="flex-1 h-px bg-border/50" />
               </button>
-
               <AnimatePresence>
                 {showBreakEven && (
                   <motion.div
@@ -378,13 +471,15 @@ function Home() {
                   Portfolio Comparison
                 </h1>
                 <p className="text-muted-foreground mt-2">
-                  Evaluate up to 4 properties side by side. Best values are highlighted automatically.
+                  {isDemoMode
+                    ? "Compare 2 sample properties. Sign up to add up to 4 and save your portfolio."
+                    : "Evaluate up to 4 properties side by side. Best values are highlighted automatically."}
                 </p>
               </div>
               <div className="flex items-center gap-3">
-                {properties.length < 4 && (
+                {properties.length < maxProperties && (
                   <button
-                    onClick={handleAdd}
+                    onClick={() => void handleAdd()}
                     data-testid="button-add-property"
                     className="flex items-center gap-2 px-4 py-2 rounded-lg border border-primary/50 text-primary text-sm font-semibold hover:bg-primary/10 transition-colors"
                   >
@@ -392,10 +487,22 @@ function Home() {
                     Add Property
                   </button>
                 )}
+                {isDemoMode && properties.length >= maxProperties && (
+                  <button
+                    onClick={exitDemoMode}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg border border-primary/30 text-primary/70 text-xs font-semibold hover:bg-primary/10 transition-colors"
+                    title="Create a free account to compare up to 4 properties"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Property
+                    <span className="ml-1 text-[10px] bg-primary/15 px-1.5 py-0.5 rounded-full">Full version</span>
+                  </button>
+                )}
                 <ExportButton
                   onClick={handleExportCompare}
                   loading={exportingCompare}
                   label="Export PDF"
+                  demo={isDemoMode}
                   data-testid="button-export-compare"
                 />
               </div>
@@ -410,7 +517,7 @@ function Home() {
                     name={p.name}
                     data={p.data}
                     index={i}
-                    canRemove={properties.length > 2}
+                    canRemove={!isDemoMode && properties.length > 2}
                     onNameChange={handleNameChange}
                     onChange={handleDataChange}
                     onRemove={handleRemove}
@@ -421,15 +528,16 @@ function Home() {
 
             <ComparisonTable properties={comparisonEntries} />
           </motion.main>
-        )
-      )}
+        ))}
       </AnimatePresence>
     </div>
   );
 }
 
+// ─── AuthGate ─────────────────────────────────────────────────────────────────
+
 function AuthGate() {
-  const { session, loading } = useAuth();
+  const { session, loading, isDemoMode } = useAuth();
 
   if (loading) {
     return (
@@ -439,17 +547,20 @@ function AuthGate() {
     );
   }
 
-  if (!session) {
+  // Allow demo mode visitors into the dashboard without a session
+  if (!session && !isDemoMode) {
     return <AuthPage />;
   }
 
   return (
     <Switch>
-      <Route path="/" component={Home} />
+      <Route path="/" component={() => <Home isDemoMode={isDemoMode} />} />
       <Route component={NotFound} />
     </Switch>
   );
 }
+
+// ─── App ──────────────────────────────────────────────────────────────────────
 
 function App() {
   return (
