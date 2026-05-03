@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2, Mail, Lock, Eye, EyeOff, Building2, CheckCircle2, Zap } from "lucide-react";
+import { Loader2, Mail, Lock, Eye, EyeOff, Building2, CheckCircle2, Zap, Chrome } from "lucide-react";
 
 type Tab = "signin" | "signup";
 
@@ -68,6 +68,7 @@ export default function AuthPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [signedUp, setSignedUp] = useState(false);
 
@@ -119,6 +120,22 @@ export default function AuthPage() {
       }
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleGoogleSignIn() {
+    setError(null);
+    setGoogleLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
+        },
+      });
+      if (error) setError(error.message);
+    } finally {
+      setGoogleLoading(false);
     }
   }
 
@@ -304,6 +321,31 @@ export default function AuthPage() {
                   </motion.form>
                 )}
               </AnimatePresence>
+            </div>
+
+            {/* Divider */}
+            <div className="relative flex items-center gap-3 px-7 py-2">
+              <div className="flex-1 h-px bg-border/40" />
+              <span className="text-[10px] uppercase tracking-widest text-muted-foreground/60 font-mono">or</span>
+              <div className="flex-1 h-px bg-border/40" />
+            </div>
+
+            {/* Google OAuth Button */}
+            <div className="px-7 pb-7">
+              <motion.button
+                onClick={handleGoogleSignIn}
+                disabled={googleLoading || loading}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full flex items-center justify-center gap-2.5 py-3 rounded-xl border border-border/60 bg-card/50 text-foreground font-semibold text-sm hover:border-primary/40 hover:bg-card/70 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {googleLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Chrome className="h-4 w-4" />
+                )}
+                Continue with Google
+              </motion.button>
             </div>
           </div>
 
