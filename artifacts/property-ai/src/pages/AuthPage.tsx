@@ -124,16 +124,27 @@ export default function AuthPage() {
   }
 
   async function handleGoogleSignIn() {
+    console.log("Google button clicked");
     setError(null);
     setGoogleLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      console.log("Starting OAuth signin with provider: google");
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo: window.location.origin,
         },
       });
-      if (error) setError(error.message);
+      console.log("OAuth response:", { data, error });
+      if (error) {
+        console.error("OAuth error:", error);
+        setError(`OAuth error: ${error.message}`);
+      } else {
+        console.log("OAuth initiated successfully, should redirect now");
+      }
+    } catch (err: any) {
+      console.error("Caught exception in handleGoogleSignIn:", err);
+      setError(`Error: ${err?.message || String(err)}`);
     } finally {
       setGoogleLoading(false);
     }
@@ -333,11 +344,13 @@ export default function AuthPage() {
             {/* Google OAuth Button */}
             <div className="px-7 pb-7">
               <motion.button
+                type="button"
                 onClick={handleGoogleSignIn}
                 disabled={googleLoading || loading}
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.98 }}
                 className="w-full flex items-center justify-center gap-2.5 py-3 rounded-xl border border-border/60 bg-card/50 text-foreground font-semibold text-sm hover:border-primary/40 hover:bg-card/70 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                data-testid="btn-google-oauth"
               >
                 {googleLoading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
