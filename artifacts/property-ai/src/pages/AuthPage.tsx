@@ -111,7 +111,16 @@ export default function AuthPage() {
         const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
         if (error) setError(error.message);
       } else {
-        const { error } = await supabase.auth.signUp({ email: email.trim(), password });
+        const { data, error } = await supabase.auth.signInWithPassword({
+  email: email.trim(),
+  password,
+});
+
+console.log("SUPABASE SIGNIN RESPONSE:", { data, error });
+
+if (error) {
+  setError(error.message);
+}
         if (error) {
           setError(error.message);
         } else {
@@ -130,7 +139,7 @@ export default function AuthPage() {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: window.location.origin,
+          redirectTo: redirectTo: `${window.location.origin}/`,
         },
       });
       if (error) {
