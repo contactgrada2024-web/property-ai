@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2, Mail, Lock, Eye, EyeOff, Building2, CheckCircle2, Zap, Chrome } from "lucide-react";
-
+ 
 type Tab = "signin" | "signup";
 
 function FieldInput({
