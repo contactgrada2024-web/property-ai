@@ -174,7 +174,14 @@ if (error) {
           <span className="font-bold text-lg tracking-tight">
             <span className="text-foreground">Property</span>
             <span className="text-primary">AI</span>
-          </span>
+         
+</span>
+<p className="text-[10px] text-muted-foreground">
+  Beta · Early access release
+</p>
+         <p className="text-xs text-muted-foreground">
+  Strategic intelligence for rental property investors.
+</p>
         </div>
         <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono">
           Terminal v1.0 // Secure
