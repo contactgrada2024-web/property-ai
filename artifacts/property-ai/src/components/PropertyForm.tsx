@@ -138,7 +138,7 @@ export default function PropertyForm({ onChange }: PropertyFormProps) {
               name="mortgagePayment"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">Monthly Mortgage</FormLabel>
+                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">Monthly Principal & Interest</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
