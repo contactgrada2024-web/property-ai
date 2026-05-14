@@ -138,7 +138,7 @@ export default function PropertyForm({ onChange }: PropertyFormProps) {
               name="mortgagePayment"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">Mortgage Payment</FormLabel>
+                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">Monthly Mortgage</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -154,7 +154,7 @@ export default function PropertyForm({ onChange }: PropertyFormProps) {
               name="propertyTax"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">Property Tax</FormLabel>
+                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">Monthly Property Tax</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -170,7 +170,7 @@ export default function PropertyForm({ onChange }: PropertyFormProps) {
               name="insurance"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">Insurance</FormLabel>
+                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">Monthly Insurance</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -186,7 +186,7 @@ export default function PropertyForm({ onChange }: PropertyFormProps) {
               name="maintenance"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">Maintenance</FormLabel>
+                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">Monthly Maintenance</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -202,7 +202,7 @@ export default function PropertyForm({ onChange }: PropertyFormProps) {
               name="hoa"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">HOA / Other</FormLabel>
+                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">Monthly HOA / Other</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
