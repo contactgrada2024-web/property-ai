@@ -390,7 +390,7 @@ function Home({ isDemoMode }: { isDemoMode: boolean }) {
                 </div>
 
                 <div className="bg-card/30 p-6 md:p-8 rounded-2xl border border-border/50">
-                  <PropertyForm onChange={setSingleData} />
+                  <PropertyForm data={singleData} onChange={setSingleData} />
                 </div>
               </div>
               <div className="lg:col-span-5 lg:sticky lg:top-24">

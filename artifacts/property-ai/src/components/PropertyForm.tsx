@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { propertySchema, PropertyData, defaultPropertyData } from "@/lib/calculations";
+import { propertySchema, PropertyData } from "@/lib/calculations";
 import {
   Form,
   FormControl,
@@ -14,15 +14,20 @@ import { DollarSign, Building2, TrendingUp, Percent, Wallet } from "lucide-react
 import { useEffect } from "react";
 
 interface PropertyFormProps {
+  data: PropertyData;
   onChange: (data: PropertyData) => void;
 }
 
-export default function PropertyForm({ onChange }: PropertyFormProps) {
+export default function PropertyForm({ data, onChange }: PropertyFormProps) {
   const form = useForm<PropertyData>({
     resolver: zodResolver(propertySchema),
-    defaultValues: defaultPropertyData,
+    defaultValues: data,
     mode: "onChange"
   });
+
+  useEffect(() => {
+    form.reset(data);
+  }, [data, form]);
 
   useEffect(() => {
     const subscription = form.watch((value) => {
