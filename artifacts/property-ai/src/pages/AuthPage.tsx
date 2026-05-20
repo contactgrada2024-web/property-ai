@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2, Mail, Lock, Eye, EyeOff, Building2, CheckCircle2, Zap, Chrome } from "lucide-react";
-
+ 
 type Tab = "signin" | "signup";
 
 function FieldInput({
@@ -111,7 +111,16 @@ export default function AuthPage() {
         const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
         if (error) setError(error.message);
       } else {
-        const { error } = await supabase.auth.signUp({ email: email.trim(), password });
+        const { data, error } = await supabase.auth.signUp({
+  email: email.trim(),
+  password,
+});
+
+console.log("SUPABASE SIGNIN RESPONSE:", { data, error });
+
+if (error) {
+  setError(error.message);
+}
         if (error) {
           setError(error.message);
         } else {
@@ -130,7 +139,7 @@ export default function AuthPage() {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: window.location.origin,
+          redirectTo: `${window.location.origin}/`,
         },
       });
       if (error) {
@@ -165,7 +174,14 @@ export default function AuthPage() {
           <span className="font-bold text-lg tracking-tight">
             <span className="text-foreground">Property</span>
             <span className="text-primary">AI</span>
-          </span>
+         
+</span>
+<p className="text-[10px] text-muted-foreground">
+  Beta · Early access release
+</p>
+         <p className="text-xs text-muted-foreground">
+  Strategic intelligence for rental property investors.
+</p>
         </div>
         <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono">
           Terminal v1.0 // Secure
