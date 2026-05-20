@@ -19,6 +19,7 @@ interface PropertyFormProps {
 }
 
 export default function PropertyForm({ data, onChange }: PropertyFormProps) {
+  console.log("[TRACE] PropertyForm mounting with data:", JSON.stringify(data).substring(0, 200));
   const form = useForm<PropertyData>({
     resolver: zodResolver(propertySchema),
     defaultValues: data,
@@ -26,6 +27,7 @@ export default function PropertyForm({ data, onChange }: PropertyFormProps) {
   });
 
   useEffect(() => {
+    console.log("[TRACE] PropertyForm reset to data:", JSON.stringify(data).substring(0, 200));
     form.reset(data);
   }, [data, form]);
 

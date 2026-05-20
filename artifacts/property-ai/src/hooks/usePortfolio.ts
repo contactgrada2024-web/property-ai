@@ -84,17 +84,21 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
         const { analyze, compare } = await dbLoadAll();
 
         // --- Analyze mode ---
+        console.log("[TRACE] usePortfolio after dbLoadAll, analyze[0]:", analyze[0] ?? null);
         if (analyze[0]) {
           analyzeDbId.current = analyze[0].id;
           _setAnalyzeName(analyze[0].name);
+          console.log("[TRACE] _setAnalyzeData from dbLoadAll:", analyze[0].data);
           _setAnalyzeData(analyze[0].data as PropertyData);
         } else {
+          console.log("[TRACE] dbLoadAll returned 0 analyze rows; creating default row");
           const row = await dbCreate({
             name: "My Property",
             mode: "analyze",
             data: { ...defaultPropertyData },
             sort_order: 0,
           });
+          console.log("[TRACE] dbCreate fallback row data:", row.data);
           analyzeDbId.current = row.id;
         }
 
@@ -152,6 +156,7 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
 
   const setAnalyzeData = useCallback(
     (data: PropertyData) => {
+      console.log("[TRACE] setAnalyzeData called:", JSON.stringify(data).substring(0, 200));
       _setAnalyzeData(data);
       if (!demo) {
         const id = analyzeDbId.current;
