@@ -224,6 +224,7 @@ function Home({ isDemoMode }: { isDemoMode: boolean }) {
     removeCompareProperty: handleRemove,
     updateComparePropertyName: handleNameChange,
     updateComparePropertyData: handleDataChange,
+    copyFromAnalyze: handleCopyFromAnalyze,
     loading,
     saveStatus,
     dbError,
@@ -521,6 +522,7 @@ function Home({ isDemoMode }: { isDemoMode: boolean }) {
                     onNameChange={handleNameChange}
                     onChange={handleDataChange}
                     onRemove={handleRemove}
+                    onCopyFromAnalyze={handleCopyFromAnalyze}
                   />
                 ))}
               </div>

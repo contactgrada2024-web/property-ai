@@ -84,21 +84,17 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
         const { analyze, compare } = await dbLoadAll();
 
         // --- Analyze mode ---
-        console.log("[TRACE] usePortfolio after dbLoadAll, analyze[0]:", analyze[0] ?? null);
         if (analyze[0]) {
           analyzeDbId.current = analyze[0].id;
           _setAnalyzeName(analyze[0].name);
-          console.log("[TRACE] _setAnalyzeData from dbLoadAll:", analyze[0].data);
           _setAnalyzeData(analyze[0].data as PropertyData);
         } else {
-          console.log("[TRACE] dbLoadAll returned 0 analyze rows; creating default row");
           const row = await dbCreate({
             name: "My Property",
             mode: "analyze",
             data: { ...defaultPropertyData },
             sort_order: 0,
           });
-          console.log("[TRACE] dbCreate fallback row data:", row.data);
           analyzeDbId.current = row.id;
         }
 
@@ -116,7 +112,7 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
             const row = await dbCreate({
               name: DEFAULT_NAMES[idx] ?? `Property ${idx + 1}`,
               mode: "compare",
-              data: { ...defaultPropertyData },
+              data: analyze[0]?.data ? { ...(analyze[0].data as PropertyData) } : { ...defaultPropertyData },
               sort_order: idx,
             });
             existing.push({ id: row.id, name: row.name, data: row.data as PropertyData });
@@ -156,7 +152,6 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
 
   const setAnalyzeData = useCallback(
     (data: PropertyData) => {
-      console.log("[TRACE] setAnalyzeData called:", JSON.stringify(data).substring(0, 200));
       _setAnalyzeData(data);
       if (!demo) {
         const id = analyzeDbId.current;
@@ -221,6 +216,21 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
     [demo]
   );
 
+  const copyFromAnalyze = useCallback(
+    async (targetId: string) => {
+      const current = compareRef.current;
+      const idx = current.findIndex((p) => p.id === targetId);
+      if (idx === -1) return;
+      const newData = { ...analyzeData };
+      const updated = current.map((p, i) => (i === idx ? { ...p, data: newData } : p));
+      setCompare(updated);
+      if (!demo) {
+        await dbUpdate(targetId, { data: newData });
+      }
+    },
+    [demo, analyzeData]
+  );
+
   return {
     // Analyze
     analyzeName,
@@ -233,6 +243,7 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
     removeCompareProperty,
     updateComparePropertyName,
     updateComparePropertyData,
+    copyFromAnalyze,
     // Status
     loading,
     saveStatus: demo ? saveStatus : _saveStatus,

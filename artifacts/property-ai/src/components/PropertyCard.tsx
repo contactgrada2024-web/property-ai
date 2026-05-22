@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { propertySchema, PropertyData, defaultPropertyData } from "@/lib/calculations";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { DollarSign, Percent, Trash2, Building2 } from "lucide-react";
+import { DollarSign, Percent, Trash2, Building2, Copy } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface PropertyCardProps {
@@ -16,6 +16,7 @@ interface PropertyCardProps {
   onNameChange: (id: string, name: string) => void;
   onChange: (id: string, data: PropertyData) => void;
   onRemove: (id: string) => void;
+  onCopyFromAnalyze?: (id: string) => void;
 }
 
 const ACCENT_COLORS = [
@@ -85,12 +86,17 @@ export default function PropertyCard({
   onNameChange,
   onChange,
   onRemove,
+  onCopyFromAnalyze,
 }: PropertyCardProps) {
   const form = useForm<PropertyData>({
     resolver: zodResolver(propertySchema),
     defaultValues: data,
     mode: "onChange",
   });
+
+  useEffect(() => {
+    form.reset(data);
+  }, [data, form]);
 
   useEffect(() => {
     const subscription = form.watch((value) => {
@@ -125,16 +131,28 @@ export default function PropertyCard({
             maxLength={32}
           />
         </div>
-        {canRemove && (
-          <button
-            onClick={() => onRemove(id)}
-            className="text-muted-foreground hover:text-destructive transition-colors flex-shrink-0 p-1"
-            data-testid={`button-remove-property-${id}`}
-            aria-label="Remove property"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        )}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {onCopyFromAnalyze && (
+            <button
+              onClick={() => onCopyFromAnalyze(id)}
+              className="text-muted-foreground hover:text-primary transition-colors p-1"
+              title="Copy values from Analyze property"
+              aria-label="Copy from analyze"
+            >
+              <Copy className="h-4 w-4" />
+            </button>
+          )}
+          {canRemove && (
+            <button
+              onClick={() => onRemove(id)}
+              className="text-muted-foreground hover:text-destructive transition-colors p-1"
+              data-testid={`button-remove-property-${id}`}
+              aria-label="Remove property"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          )}
+        </div>
       </div>
 
       <Form {...form}>
