@@ -13,13 +13,14 @@ import PropertyCard from "@/components/PropertyCard";
 import ComparisonTable from "@/components/ComparisonTable";
 import AmortizationChart from "@/components/AmortizationChart";
 import BreakEvenCalculator from "@/components/BreakEvenCalculator";
+import DebugPanel from "@/components/DebugPanel";
 import { calculatePropertyMetrics, generateAmortization, PropertyData } from "@/lib/calculations";
 import { exportSinglePropertyPdf, exportComparisonPdf } from "@/lib/exportPdf";
 import { usePortfolio } from "@/hooks/usePortfolio";
 import {
   Radar, Plus, BarChart2, SlidersHorizontal, Download, Loader2,
   ChevronDown, ChevronUp, LogOut, Cloud, CloudOff, Check, AlertCircle,
-  Zap, UserPlus, LogIn, X,
+  Zap, UserPlus, LogIn, X, Bug,
 } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -228,7 +229,12 @@ function Home({ isDemoMode }: { isDemoMode: boolean }) {
     loading,
     saveStatus,
     dbError,
+    persistDiagnostics,
+    saveAndDiagnose,
+    reloadDiagnostics,
   } = usePortfolio({ demo: isDemoMode });
+
+  const [showDebug, setShowDebug] = useState(false);
 
   const singleResults = useMemo(() => calculatePropertyMetrics(singleData), [singleData]);
   const amortizationSummary = useMemo(() => generateAmortization(singleData), [singleData]);
@@ -311,6 +317,16 @@ function Home({ isDemoMode }: { isDemoMode: boolean }) {
 
           <div className="flex items-center gap-2">
             {!isDemoMode && <SaveStatusIndicator status={saveStatus} />}
+            {!isDemoMode && (
+              <button
+                onClick={() => setShowDebug((v) => !v)}
+                className="text-[10px] font-mono px-2 py-1 rounded border border-border/40 text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all"
+                title="Toggle debug panel"
+              >
+                <Bug className="h-3 w-3 inline mr-1" />
+                Debug
+              </button>
+            )}
             <UserNav />
           </div>
         </div>
@@ -456,6 +472,16 @@ function Home({ isDemoMode }: { isDemoMode: boolean }) {
                 )}
               </AnimatePresence>
             </div>
+
+            {/* Debug diagnostics panel */}
+            {showDebug && (
+              <DebugPanel
+                diagnostics={persistDiagnostics}
+                onSave={saveAndDiagnose}
+                onReload={reloadDiagnostics}
+                singleData={singleData}
+              />
+            )}
           </motion.main>
         ) : (
           <motion.main

@@ -67,10 +67,21 @@ export async function dbCreate(payload: Omit<DBProperty, "id">): Promise<DBPrope
   return data as DBProperty;
 }
 
+export interface DbUpdateDiagnostic {
+  table: string;
+  rowId: string;
+  userId: string;
+  payload: Partial<Pick<DBProperty, "name" | "data" | "sort_order">>;
+  returnedRow: DBProperty | null;
+  errorMessage: string | null;
+  errorCode: string | null;
+  errorDetails: string | null;
+}
+
 export async function dbUpdate(
   id: string,
   payload: Partial<Pick<DBProperty, "name" | "data" | "sort_order">>
-): Promise<void> {
+): Promise<DbUpdateDiagnostic> {
   const { data: userData } = await supabase.auth.getUser();
   const userId = userData.user?.id ?? "none";
 
@@ -81,17 +92,16 @@ export async function dbUpdate(
     .select(COLS)
     .single();
 
-  const payloadCv = (payload.data as PropertyData | undefined)?.currentValue ?? null;
-  console.error("[PERSIST] dbUpdate", {
+  const diagnostic: DbUpdateDiagnostic = {
     table: "properties",
     rowId: id,
     userId,
-    payloadCurrentValue: payloadCv,
-    returnedRow: data ? { id: data.id, name: data.name, mode: data.mode, user_id: (data as any).user_id } : null,
+    payload,
+    returnedRow: data ? (data as DBProperty) : null,
     errorMessage: error?.message ?? null,
     errorCode: error?.code ?? null,
     errorDetails: error?.details ?? null,
-  });
+  };
 
   if (error) throw error;
   if (!data) {
@@ -101,6 +111,17 @@ export async function dbUpdate(
       `Authenticated user=${userId}. Check that the row's user_id matches auth.uid().`
     );
   }
+  return diagnostic;
+}
+
+export async function dbGetRow(id: string): Promise<DBProperty | null> {
+  const { data, error } = await supabase
+    .from("properties")
+    .select(COLS)
+    .eq("id", id)
+    .single();
+  if (error) throw error;
+  return data ? (data as DBProperty) : null;
 }
 
 export async function dbDelete(id: string): Promise<void> {

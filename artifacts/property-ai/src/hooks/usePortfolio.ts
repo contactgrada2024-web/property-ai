@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { defaultPropertyData, PropertyData } from "@/lib/calculations";
-import { dbCreate, dbDelete, dbLoadAll, dbUpdate } from "@/lib/db";
+import { dbCreate, dbDelete, dbLoadAll, dbUpdate, dbGetRow, DbUpdateDiagnostic } from "@/lib/db";
 import {
   DEMO_ANALYZE_DATA,
   DEMO_ANALYZE_NAME,
@@ -14,6 +14,19 @@ export interface PortfolioEntry {
 }
 
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
+
+export interface PersistDiagnostic {
+  timestamp: string;
+  userId: string;
+  rowId: string;
+  payloadCurrentValue: number;
+  returnedRowCurrentValue: number | null;
+  rowsAffected: number;
+  errorMessage: string | null;
+  errorCode: string | null;
+  rawReturnedRow: Record<string, unknown> | null;
+  rawReloadedRow: Record<string, unknown> | null;
+}
 
 const DEFAULT_NAMES = ["Property A", "Property B", "Property C", "Property D"];
 
@@ -31,6 +44,9 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
     demo ? { ...DEMO_ANALYZE_DATA } : { ...defaultPropertyData }
   );
 
+  // In-app diagnostics (visible on screen, not console)
+  const [persistDiagnostics, _setPersistDiagnostics] = useState<PersistDiagnostic[]>([]);
+
   // Compare mode — keep a ref in sync so callbacks always see fresh state
   const [compareProperties, _setCompare] = useState<PortfolioEntry[]>(
     demo ? DEMO_COMPARE_PROPERTIES.map((p) => ({ ...p, data: { ...p.data } })) : []
@@ -46,11 +62,11 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
 
   // Debounce infrastructure (no-op in demo mode)
   const [_saveStatus, _setSaveStatus] = useState<SaveStatus>("idle");
-  const dirty = useRef<Map<string, () => Promise<void>>>(new Map());
+  const dirty = useRef<Map<string, () => Promise<unknown>>>(new Map());
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  function schedule(key: string, fn: () => Promise<void>) {
+  function schedule(key: string, fn: () => Promise<unknown>) {
     if (demo) return; // no-op in demo
     dirty.current.set(key, fn);
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
@@ -145,7 +161,7 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
       _setAnalyzeName(name);
       if (!demo) {
         const id = analyzeDbId.current;
-        if (id) schedule("analyze-name", () => dbUpdate(id, { name }));
+        if (id) schedule("analyze-name", () => dbUpdate(id, { name }).then(() => {}));
       }
     },
     [demo]
@@ -156,11 +172,103 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
       _setAnalyzeData(data);
       if (!demo) {
         const id = analyzeDbId.current;
-        if (id) schedule("analyze-data", () => dbUpdate(id, { data }));
+        if (id) schedule("analyze-data", () => dbUpdate(id, { data }).then(() => {}));
       }
     },
     [demo]
   );
+
+  // ─── Diagnostic: immediate save + reload (no debounce) ───────────────────
+
+  const saveAndDiagnose = useCallback(
+    async (data: PropertyData): Promise<PersistDiagnostic> => {
+      const id = analyzeDbId.current;
+      if (!id) {
+        throw new Error("No analyzeDbId — cannot save.");
+      }
+      const { data: userData } = await (await import("@/lib/supabase")).supabase.auth.getUser();
+      const userId = userData.user?.id ?? "none";
+
+      let diag: DbUpdateDiagnostic;
+      try {
+        diag = await dbUpdate(id, { data });
+      } catch (e: any) {
+        diag = {
+          table: "properties",
+          rowId: id,
+          userId,
+          payload: { data },
+          returnedRow: null,
+          errorMessage: e?.message ?? String(e),
+          errorCode: e?.code ?? null,
+          errorDetails: null,
+        };
+      }
+
+      // Reload row immediately to prove persistence
+      let reloaded: any = null;
+      try {
+        reloaded = await dbGetRow(id);
+      } catch {
+        /* ignore reload errors — update result is what matters */
+      }
+
+      const entry: PersistDiagnostic = {
+        timestamp: new Date().toISOString(),
+        userId: diag.userId,
+        rowId: id,
+        payloadCurrentValue: data.currentValue,
+        returnedRowCurrentValue: diag.returnedRow?.data?.currentValue ?? null,
+        rowsAffected: diag.returnedRow ? 1 : 0,
+        errorMessage: diag.errorMessage,
+        errorCode: diag.errorCode,
+        rawReturnedRow: diag.returnedRow as any,
+        rawReloadedRow: reloaded as any,
+      };
+
+      _setPersistDiagnostics((prev) => [entry, ...prev].slice(0, 10));
+      _setAnalyzeData(data);
+      return entry;
+    },
+    []
+  );
+
+  const reloadDiagnostics = useCallback(async () => {
+    const id = analyzeDbId.current;
+    if (!id) return;
+    const { data: userData } = await (await import("@/lib/supabase")).supabase.auth.getUser();
+    const userId = userData.user?.id ?? "none";
+    let reloaded: any = null;
+    try {
+      reloaded = await dbGetRow(id);
+    } catch (e: any) {
+      _setPersistDiagnostics((prev) => [{
+        timestamp: new Date().toISOString(),
+        userId,
+        rowId: id,
+        payloadCurrentValue: analyzeData.currentValue,
+        returnedRowCurrentValue: null,
+        rowsAffected: 0,
+        errorMessage: e?.message ?? String(e),
+        errorCode: e?.code ?? null,
+        rawReturnedRow: null,
+        rawReloadedRow: null,
+      }, ...prev].slice(0, 10));
+      return;
+    }
+    _setPersistDiagnostics((prev) => [{
+      timestamp: new Date().toISOString(),
+      userId,
+      rowId: id,
+      payloadCurrentValue: analyzeData.currentValue,
+      returnedRowCurrentValue: reloaded?.data?.currentValue ?? null,
+      rowsAffected: 1,
+      errorMessage: null,
+      errorCode: null,
+      rawReturnedRow: null,
+      rawReloadedRow: reloaded as any,
+    }, ...prev].slice(0, 10));
+  }, [analyzeData]);
 
   // ─── Compare handlers ──────────────────────────────────────────────────────
 
@@ -204,7 +312,7 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
   const updateComparePropertyName = useCallback(
     (id: string, name: string) => {
       setCompare(compareRef.current.map((p) => (p.id === id ? { ...p, name } : p)));
-      if (!demo) schedule(`cname-${id}`, () => dbUpdate(id, { name }));
+      if (!demo) schedule(`cname-${id}`, () => dbUpdate(id, { name }).then(() => {}));
     },
     [demo]
   );
@@ -212,7 +320,7 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
   const updateComparePropertyData = useCallback(
     (id: string, data: PropertyData) => {
       setCompare(compareRef.current.map((p) => (p.id === id ? { ...p, data } : p)));
-      if (!demo) schedule(`cdata-${id}`, () => dbUpdate(id, { data }));
+      if (!demo) schedule(`cdata-${id}`, () => dbUpdate(id, { data }).then(() => {}));
     },
     [demo]
   );
@@ -249,5 +357,9 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
     loading,
     saveStatus: demo ? saveStatus : _saveStatus,
     dbError,
+    // Diagnostics
+    persistDiagnostics,
+    saveAndDiagnose,
+    reloadDiagnostics,
   };
 }
