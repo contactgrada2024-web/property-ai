@@ -7,124 +7,90 @@ export interface DBProperty {
   mode: "analyze" | "compare";
   data: PropertyData;
   sort_order: number;
+  user_id?: string;
 }
 
 const COLS = "id, name, mode, data, sort_order, user_id";
 
 export async function dbLoadAll(): Promise<{ analyze: DBProperty[]; compare: DBProperty[] }> {
   const { data: userData } = await supabase.auth.getUser();
-  const userId = userData.user?.id ?? "none";
+  const userId = userData.user?.id;
+  if (!userId) throw new Error("Not authenticated — cannot load portfolio.");
 
   const { data, error } = await supabase
     .from("properties")
     .select(COLS)
+    .eq("user_id", userId)
     .order("sort_order", { ascending: true });
 
-  const rows = (data ?? []) as DBProperty[];
-  console.error("[PERSIST] dbLoadAll", {
-    userId,
-    totalRows: rows.length,
-    analyzeRows: rows.filter((r) => r.mode === "analyze").length,
-    compareRows: rows.filter((r) => r.mode === "compare").length,
-    firstRowUserId: rows[0] ? (rows[0] as any).user_id : null,
-    errorMessage: error?.message ?? null,
-  });
-
   if (error) throw error;
+  const rows = (data ?? []) as DBProperty[];
   return {
     analyze: rows.filter((r) => r.mode === "analyze"),
     compare: rows.filter((r) => r.mode === "compare"),
   };
 }
 
-export async function dbCreate(payload: Omit<DBProperty, "id">): Promise<DBProperty> {
+export async function dbCreate(payload: Omit<DBProperty, "id" | "user_id">): Promise<DBProperty> {
   const { data: userData } = await supabase.auth.getUser();
-  const userId = userData.user?.id ?? "none";
+  const userId = userData.user?.id;
+  if (!userId) throw new Error("Not authenticated — cannot create property.");
+
+  const insertPayload = { ...payload, user_id: userId };
 
   const { data, error } = await supabase
     .from("properties")
-    .insert(payload)
+    .insert(insertPayload)
     .select(COLS)
     .single();
-
-  console.error("[PERSIST] dbCreate", {
-    table: "properties",
-    userId,
-    payloadMode: payload.mode,
-    payloadName: payload.name,
-    returnedRow: data ? { id: data.id, name: data.name, mode: data.mode, user_id: (data as any).user_id } : null,
-    errorMessage: error?.message ?? null,
-    errorCode: error?.code ?? null,
-  });
 
   if (error) throw error;
   if (!data) {
     throw new Error(
-      `dbCreate FAILED on properties — no row returned after insert. ` +
-      `Authenticated user=${userId}. Check RLS insert policy and user_id trigger.`
+      "dbCreate FAILED — Supabase returned no row after insert. " +
+      "Check that the properties table exists, RLS INSERT policy allows auth.uid()=user_id, " +
+      "and the user_id column accepts the authenticated user's UUID."
     );
   }
   return data as DBProperty;
 }
 
-export interface DbUpdateDiagnostic {
-  table: string;
-  rowId: string;
-  userId: string;
-  payload: Partial<Pick<DBProperty, "name" | "data" | "sort_order">>;
-  returnedRow: DBProperty | null;
-  errorMessage: string | null;
-  errorCode: string | null;
-  errorDetails: string | null;
-}
-
 export async function dbUpdate(
   id: string,
   payload: Partial<Pick<DBProperty, "name" | "data" | "sort_order">>
-): Promise<DbUpdateDiagnostic> {
+): Promise<void> {
   const { data: userData } = await supabase.auth.getUser();
-  const userId = userData.user?.id ?? "none";
+  const userId = userData.user?.id;
+  if (!userId) throw new Error("Not authenticated — cannot update property.");
 
   const { data, error } = await supabase
     .from("properties")
     .update(payload)
     .eq("id", id)
+    .eq("user_id", userId)
     .select(COLS)
     .single();
-
-  const diagnostic: DbUpdateDiagnostic = {
-    table: "properties",
-    rowId: id,
-    userId,
-    payload,
-    returnedRow: data ? (data as DBProperty) : null,
-    errorMessage: error?.message ?? null,
-    errorCode: error?.code ?? null,
-    errorDetails: error?.details ?? null,
-  };
 
   if (error) throw error;
   if (!data) {
     throw new Error(
-      `dbUpdate FAILED on properties.id=${id} — no row returned after update. ` +
-      `Either the row does not exist, or RLS blocked the write. ` +
-      `Authenticated user=${userId}. Check that the row's user_id matches auth.uid().`
+      `dbUpdate FAILED — no row returned for properties.id=${id}. ` +
+      `Possible causes: (1) row does not exist, (2) row belongs to a different user, ` +
+      `(3) RLS UPDATE policy blocked the write. Authenticated user=${userId}.`
     );
   }
-  return diagnostic;
-}
-
-export async function dbGetRow(id: string): Promise<DBProperty | null> {
-  const { data, error } = await supabase
-    .from("properties")
-    .select(COLS)
-    .eq("id", id)
-    .single();
-  if (error) throw error;
-  return data ? (data as DBProperty) : null;
 }
 
 export async function dbDelete(id: string): Promise<void> {
-  const { error } = await supabase.from("properties").delete().eq("id", id);
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData.user?.id;
+  if (!userId) throw new Error("Not authenticated — cannot delete property.");
+
+  const { error } = await supabase
+    .from("properties")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", userId);
+
   if (error) throw error;
 }

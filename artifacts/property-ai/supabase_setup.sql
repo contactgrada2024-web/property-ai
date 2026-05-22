@@ -1,11 +1,12 @@
 -- ============================================================
--- PropertyAI — Supabase Setup
--- Run this once in: Supabase Dashboard → SQL Editor → New query
+-- PropertyAI — Supabase Schema & RLS (production-ready, idempotent)
+-- Run once in your live Supabase project:
+--   Supabase Dashboard → SQL Editor → New query → Run
 -- ============================================================
 
 create table if not exists properties (
   id          uuid        primary key default gen_random_uuid(),
-  user_id     uuid        references auth.users(id) on delete cascade not null,
+  user_id     uuid        not null references auth.users(id) on delete cascade,
   name        text        not null default 'Unnamed Property',
   mode        text        not null check (mode in ('analyze', 'compare')),
   data        jsonb       not null default '{}'::jsonb,
@@ -14,15 +15,36 @@ create table if not exists properties (
   updated_at  timestamptz not null default now()
 );
 
--- Row-Level Security: users can only see/edit their own rows
+-- Enable Row-Level Security
 alter table properties enable row level security;
 
-create policy "select own" on properties for select using (auth.uid() = user_id);
-create policy "insert own" on properties for insert with check (auth.uid() = user_id);
-create policy "update own" on properties for update using (auth.uid() = user_id);
-create policy "delete own" on properties for delete using (auth.uid() = user_id);
+-- RLS policies: each user sees/edits only their own rows.
+-- NOTE: UPDATE and DELETE policies use "using" only (no "with check").
+-- Only INSERT uses "with check".
 
--- Auto-populate user_id from the authenticated session
+create policy "select_own_properties"
+  on properties
+  for select
+  using (user_id = auth.uid());
+
+create policy "insert_own_properties"
+  on properties
+  for insert
+  with check (user_id = auth.uid());
+
+create policy "update_own_properties"
+  on properties
+  for update
+  using (user_id = auth.uid());
+
+create policy "delete_own_properties"
+  on properties
+  for delete
+  using (user_id = auth.uid());
+
+-- Auto-populate user_id from the authenticated session on INSERT.
+-- This trigger runs BEFORE the row is written, so user_id is set
+-- before the INSERT policy's with_check is evaluated.
 create or replace function _set_user_id()
 returns trigger language plpgsql security definer as $$
 begin
@@ -31,7 +53,10 @@ begin
 end;
 $$;
 
-create or replace trigger trg_set_user_id
+-- Drop existing trigger if it exists (idempotent re-run)
+drop trigger if exists trg_set_user_id on properties;
+
+create trigger trg_set_user_id
   before insert on properties
   for each row execute function _set_user_id();
 
@@ -44,6 +69,8 @@ begin
 end;
 $$;
 
-create or replace trigger trg_set_updated_at
+drop trigger if exists trg_set_updated_at on properties;
+
+create trigger trg_set_updated_at
   before update on properties
   for each row execute function _set_updated_at();

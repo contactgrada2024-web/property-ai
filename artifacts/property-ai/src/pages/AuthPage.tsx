@@ -116,7 +116,7 @@ export default function AuthPage() {
   password,
 });
 
-console.log("SUPABASE SIGNIN RESPONSE:", { data, error });
+// Signin result handled below
 
 if (error) {
   setError(error.message);
