@@ -83,7 +83,10 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
     await flush();
   }, []);
 
-  // Load from Supabase (skipped in demo mode)
+  // Load from Supabase (skipped in demo mode).
+  // IMPORTANT: Never auto-create rows here. Creating on every load causes
+  // duplicate rows when orphaned legacy rows exist. Rows are created lazily
+  // on the first user edit.
   useEffect(() => {
     if (demo) return;
 
@@ -99,13 +102,10 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
           _setAnalyzeName(analyze[0].name);
           _setAnalyzeData(analyze[0].data as PropertyData);
         } else {
-          const row = await dbCreate({
-            name: "My Property",
-            mode: "analyze",
-            data: { ...defaultPropertyData },
-            sort_order: 0,
-          });
-          analyzeDbId.current = row.id;
+          // No DB row yet — use in-memory defaults until the user edits.
+          analyzeDbId.current = null;
+          _setAnalyzeName("My Property");
+          _setAnalyzeData({ ...defaultPropertyData });
         }
 
         // ─── Compare mode ───
@@ -114,26 +114,6 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
           name: r.name,
           data: r.data as PropertyData,
         }));
-
-        if (existing.length < 2) {
-          const needed = 2 - existing.length;
-          for (let i = 0; i < needed; i++) {
-            const idx = existing.length;
-            const row = await dbCreate({
-              name: DEFAULT_NAMES[idx] ?? `Property ${idx + 1}`,
-              mode: "compare",
-              data: analyze[0]?.data
-                ? { ...(analyze[0].data as PropertyData) }
-                : { ...defaultPropertyData },
-              sort_order: idx,
-            });
-            existing.push({
-              id: row.id,
-              name: row.name,
-              data: row.data as PropertyData,
-            });
-          }
-        }
         setCompare(existing);
       } catch (e: any) {
         const msg: string = e?.message ?? String(e);
@@ -155,50 +135,62 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
 
   // ─── Analyze setters ─── — save IMMEDIATELY (no debounce) so mode switch never loses data
 
+  // Create analyze row lazily on first edit (avoids duplicate rows on load).
+  async function ensureAnalyzeRow(data: PropertyData, name: string): Promise<string> {
+    const id = analyzeDbId.current;
+    if (id) return id;
+    const row = await dbCreate({
+      name,
+      mode: "analyze",
+      data,
+      sort_order: 0,
+    });
+    analyzeDbId.current = row.id;
+    return row.id;
+  }
+
   const setAnalyzeName = useCallback(
     (name: string) => {
       _setAnalyzeName(name);
       if (!demo) {
-        const id = analyzeDbId.current;
-        if (id) {
-          setSaveStatus("saving");
-          dbUpdate(id, { name })
-            .then(() => {
-              setSaveStatus("saved");
-              if (savedTimer.current) clearTimeout(savedTimer.current);
-              savedTimer.current = setTimeout(() => setSaveStatus("idle"), 2500);
-            })
-            .catch((err: any) => {
-              setSaveStatus("error");
-              setDbError(err?.message || "Failed to save property name.");
-            });
-        }
+        setSaveStatus("saving");
+        const currentData = analyzeData;
+        ensureAnalyzeRow(currentData, name)
+          .then((id) => dbUpdate(id, { name }))
+          .then(() => {
+            setSaveStatus("saved");
+            if (savedTimer.current) clearTimeout(savedTimer.current);
+            savedTimer.current = setTimeout(() => setSaveStatus("idle"), 2500);
+          })
+          .catch((err: any) => {
+            setSaveStatus("error");
+            setDbError(err?.message || "Failed to save property name.");
+          });
       }
     },
-    [demo]
+    [demo, analyzeData]
   );
 
   const setAnalyzeData = useCallback(
     (data: PropertyData) => {
       _setAnalyzeData(data);
       if (!demo) {
-        const id = analyzeDbId.current;
-        if (id) {
-          setSaveStatus("saving");
-          dbUpdate(id, { data })
-            .then(() => {
-              setSaveStatus("saved");
-              if (savedTimer.current) clearTimeout(savedTimer.current);
-              savedTimer.current = setTimeout(() => setSaveStatus("idle"), 2500);
-            })
-            .catch((err: any) => {
-              setSaveStatus("error");
-              setDbError(err?.message || "Failed to save property data.");
-            });
-        }
+        setSaveStatus("saving");
+        const currentName = analyzeName;
+        ensureAnalyzeRow(data, currentName)
+          .then((id) => dbUpdate(id, { data }))
+          .then(() => {
+            setSaveStatus("saved");
+            if (savedTimer.current) clearTimeout(savedTimer.current);
+            savedTimer.current = setTimeout(() => setSaveStatus("idle"), 2500);
+          })
+          .catch((err: any) => {
+            setSaveStatus("error");
+            setDbError(err?.message || "Failed to save property data.");
+          });
       }
     },
-    [demo]
+    [demo, analyzeName]
   );
 
   // ─── Compare handlers ─── — debounced because multiple properties edit frequently
