@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { propertySchema, PropertyData, defaultPropertyData } from "@/lib/calculations";
+import { propertySchema, PropertyData } from "@/lib/calculations";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { DollarSign, Percent, Trash2, Building2, Copy } from "lucide-react";
@@ -94,9 +94,10 @@ export default function PropertyCard({
     mode: "onChange",
   });
 
-  useEffect(() => {
-    form.reset(data);
-  }, [data, form]);
+  // Do NOT call form.reset(data) in an effect. The form is the source of
+  // truth for its own values once mounted. onChange propagates edits upward.
+  // defaultValues is correct at mount because the parent only renders this
+  // component after loading finishes (loading spinner covers the gap).
 
   useEffect(() => {
     const subscription = form.watch((value) => {

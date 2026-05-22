@@ -20,7 +20,7 @@ const DEFAULT_NAMES = ["Property A", "Property B", "Property C", "Property D"];
 export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
   const [loading, setLoading] = useState(!demo);
   const [dbError, setDbError] = useState<string | null>(null);
-  const [saveStatus] = useState<SaveStatus>("idle");
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
 
   // Analyze mode
   const analyzeDbId = useRef<string | null>(null);
@@ -44,8 +44,8 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
     _setCompare(entries);
   }
 
-  // Debounce infrastructure (no-op in demo mode)
-  const [_saveStatus, _setSaveStatus] = useState<SaveStatus>("idle");
+  // Debounce infrastructure — used ONLY for compare mode edits.
+  // Analyze mode saves immediately (no debounce) so data is never lost on mode switch.
   const dirty = useRef<Map<string, () => Promise<void>>>(new Map());
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -62,17 +62,26 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
     const fns = [...dirty.current.values()];
     dirty.current.clear();
     if (!fns.length) return;
-    _setSaveStatus("saving");
+    setSaveStatus("saving");
     try {
       await Promise.all(fns.map((f) => f()));
-      _setSaveStatus("saved");
+      setSaveStatus("saved");
       if (savedTimer.current) clearTimeout(savedTimer.current);
-      savedTimer.current = setTimeout(() => _setSaveStatus("idle"), 2500);
+      savedTimer.current = setTimeout(() => setSaveStatus("idle"), 2500);
     } catch (err: any) {
-      _setSaveStatus("error");
+      setSaveStatus("error");
       setDbError(err?.message || "Save failed. Please sign in again.");
     }
   }
+
+  // Force-flush any pending compare saves before unmount / mode switch.
+  const flushPending = useCallback(async () => {
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+      debounceTimer.current = null;
+    }
+    await flush();
+  }, []);
 
   // Load from Supabase (skipped in demo mode)
   useEffect(() => {
@@ -84,7 +93,7 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
       try {
         const { analyze, compare } = await dbLoadAll();
 
-        // --- Analyze mode ---
+        // ─── Analyze mode ───
         if (analyze[0]) {
           analyzeDbId.current = analyze[0].id;
           _setAnalyzeName(analyze[0].name);
@@ -99,7 +108,7 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
           analyzeDbId.current = row.id;
         }
 
-        // --- Compare mode ---
+        // ─── Compare mode ───
         const existing: PortfolioEntry[] = compare.map((r) => ({
           id: r.id,
           name: r.name,
@@ -144,14 +153,26 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
     })();
   }, [demo]);
 
-  // ─── Analyze setters ───────────────────────────────────────────────────────
+  // ─── Analyze setters ─── — save IMMEDIATELY (no debounce) so mode switch never loses data
 
   const setAnalyzeName = useCallback(
     (name: string) => {
       _setAnalyzeName(name);
       if (!demo) {
         const id = analyzeDbId.current;
-        if (id) schedule("analyze-name", () => dbUpdate(id, { name }));
+        if (id) {
+          setSaveStatus("saving");
+          dbUpdate(id, { name })
+            .then(() => {
+              setSaveStatus("saved");
+              if (savedTimer.current) clearTimeout(savedTimer.current);
+              savedTimer.current = setTimeout(() => setSaveStatus("idle"), 2500);
+            })
+            .catch((err: any) => {
+              setSaveStatus("error");
+              setDbError(err?.message || "Failed to save property name.");
+            });
+        }
       }
     },
     [demo]
@@ -162,13 +183,25 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
       _setAnalyzeData(data);
       if (!demo) {
         const id = analyzeDbId.current;
-        if (id) schedule("analyze-data", () => dbUpdate(id, { data }));
+        if (id) {
+          setSaveStatus("saving");
+          dbUpdate(id, { data })
+            .then(() => {
+              setSaveStatus("saved");
+              if (savedTimer.current) clearTimeout(savedTimer.current);
+              savedTimer.current = setTimeout(() => setSaveStatus("idle"), 2500);
+            })
+            .catch((err: any) => {
+              setSaveStatus("error");
+              setDbError(err?.message || "Failed to save property data.");
+            });
+        }
       }
     },
     [demo]
   );
 
-  // ─── Compare handlers ──────────────────────────────────────────────────────
+  // ─── Compare handlers ─── — debounced because multiple properties edit frequently
 
   const addCompareProperty = useCallback(async () => {
     const current = compareRef.current;
@@ -187,7 +220,7 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
         { id: row.id, name: row.name, data: row.data as PropertyData },
       ]);
     } catch (err: any) {
-      _setSaveStatus("error");
+      setSaveStatus("error");
       setDbError(err?.message || "Failed to add property.");
     }
   }, [demo]);
@@ -201,7 +234,7 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
         try {
           await dbDelete(id);
         } catch (err: any) {
-          _setSaveStatus("error");
+          setSaveStatus("error");
           setDbError(err?.message || "Failed to remove property.");
         }
       }
@@ -237,7 +270,7 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
         try {
           await dbUpdate(targetId, { data: newData });
         } catch (err: any) {
-          _setSaveStatus("error");
+          setSaveStatus("error");
           setDbError(err?.message || "Failed to copy data.");
         }
       }
@@ -260,7 +293,9 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
     copyFromAnalyze,
     // Status
     loading,
-    saveStatus: demo ? saveStatus : _saveStatus,
+    saveStatus,
     dbError,
+    // Lifecycle
+    flushPending,
   };
 }

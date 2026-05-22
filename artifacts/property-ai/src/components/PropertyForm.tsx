@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { propertySchema, PropertyData } from "@/lib/calculations";
@@ -11,7 +12,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { DollarSign, Building2, TrendingUp, Percent, Wallet } from "lucide-react";
-import { useEffect } from "react";
 
 interface PropertyFormProps {
   data: PropertyData;
@@ -22,12 +22,15 @@ export default function PropertyForm({ data, onChange }: PropertyFormProps) {
   const form = useForm<PropertyData>({
     resolver: zodResolver(propertySchema),
     defaultValues: data,
-    mode: "onChange"
+    mode: "onChange",
   });
 
-  useEffect(() => {
-    form.reset(data);
-  }, [data, form]);
+  // Do NOT call form.reset(data) in an effect. The form is the source of
+  // truth for its own values once mounted. onChange propagates edits upward
+  // to the parent (and to Supabase). Re-setting from props on every parent
+  // re-render causes a race where keystrokes get overwritten.
+  // defaultValues is correct at mount because the parent only renders this
+  // component after loading finishes (loading spinner covers the gap).
 
   useEffect(() => {
     const subscription = form.watch((value) => {
@@ -42,7 +45,6 @@ export default function PropertyForm({ data, onChange }: PropertyFormProps) {
   return (
     <Form {...form}>
       <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
-        
         <div className="space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-border text-primary">
             <Building2 className="h-5 w-5" />
@@ -119,7 +121,7 @@ export default function PropertyForm({ data, onChange }: PropertyFormProps) {
         <div className="space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-border text-primary mt-8">
             <Wallet className="h-5 w-5" />
-            <h3 className="text-lg font-semibold tracking-tight">Income & Expenses</h3>
+            <h3 className="text-lg font-semibold tracking-tight">Income &amp; Expenses</h3>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField
@@ -143,7 +145,7 @@ export default function PropertyForm({ data, onChange }: PropertyFormProps) {
               name="mortgagePayment"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">Monthly Principal & Interest</FormLabel>
+                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">Monthly Principal &amp; Interest</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />

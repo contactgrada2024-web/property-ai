@@ -228,6 +228,7 @@ function Home({ isDemoMode }: { isDemoMode: boolean }) {
     loading,
     saveStatus,
     dbError,
+    flushPending,
   } = usePortfolio({ demo: isDemoMode });
 
   const singleResults = useMemo(() => calculatePropertyMetrics(singleData), [singleData]);
@@ -284,7 +285,7 @@ function Home({ isDemoMode }: { isDemoMode: boolean }) {
 
           <div className="flex items-center gap-1 bg-card/60 border border-border/50 rounded-lg p-1">
             <button
-              onClick={() => setMode("analyze")}
+              onClick={() => { flushPending(); setMode("analyze"); }}
               data-testid="button-mode-analyze"
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider transition-all ${
                 mode === "analyze"
@@ -296,7 +297,7 @@ function Home({ isDemoMode }: { isDemoMode: boolean }) {
               Analyze
             </button>
             <button
-              onClick={() => setMode("compare")}
+              onClick={() => { flushPending(); setMode("compare"); }}
               data-testid="button-mode-compare"
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider transition-all ${
                 mode === "compare"
@@ -329,7 +330,7 @@ function Home({ isDemoMode }: { isDemoMode: boolean }) {
         </div>
       )}
 
-      {/* ── Setup required (authenticated users who haven't run SQL yet) ── */}
+      {/* ── Setup required ── */}
       {!loading && dbError === "setup_required" && <SetupBanner />}
 
       {/* ── Generic DB error ── */}
@@ -341,176 +342,167 @@ function Home({ isDemoMode }: { isDemoMode: boolean }) {
       )}
 
       {/* ── Main content ── */}
-      <AnimatePresence mode="wait">
-        {(!loading && !dbError) && (mode === "analyze" ? (
-          <motion.main
-            key="analyze"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-            className="container mx-auto max-w-7xl px-4 py-8 md:py-12"
-          >
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
-              <div className="lg:col-span-7 space-y-6">
-                <div className="flex items-start justify-between gap-4 flex-wrap">
-                  <div className="flex-1 min-w-0">
-                    <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
-                      Asset Evaluation
-                    </h1>
-                    <p className="text-muted-foreground mt-1">
-                      Enter your property parameters to generate an instant strategic analysis.
-                    </p>
+      {(!loading && !dbError) && (
+        <main className="container mx-auto max-w-7xl px-4 py-8 md:py-12">
+          {mode === "analyze" ? (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+                <div className="lg:col-span-7 space-y-6">
+                  <div className="flex items-start justify-between gap-4 flex-wrap">
+                    <div className="flex-1 min-w-0">
+                      <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
+                        Asset Evaluation
+                      </h1>
+                      <p className="text-muted-foreground mt-1">
+                        Enter your property parameters to generate an instant strategic analysis.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <label className="text-[10px] text-muted-foreground uppercase tracking-widest block mb-1">
+                        Property Name
+                      </label>
+                      <input
+                        value={singleName}
+                        onChange={(e) => setSingleName(e.target.value)}
+                        className="w-full bg-card/30 border border-border/60 rounded-lg px-3 py-2 text-sm font-semibold text-foreground outline-none focus:border-primary transition-colors"
+                        placeholder="e.g. 123 Main St"
+                        maxLength={48}
+                        data-testid="input-single-property-name"
+                      />
+                    </div>
+                    <div className="mt-5">
+                      <ExportButton
+                        onClick={handleExportAnalyze}
+                        loading={exportingAnalyze}
+                        label="Export PDF"
+                        demo={isDemoMode}
+                        data-testid="button-export-analyze"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="bg-card/30 p-6 md:p-8 rounded-2xl border border-border/50">
+                    <PropertyForm data={singleData} onChange={setSingleData} />
                   </div>
                 </div>
+                <div className="lg:col-span-5 lg:sticky lg:top-24">
+                  <ResultsCard results={singleResults} />
+                </div>
+              </div>
 
-                {/* Property name + export row */}
+              <div className="mt-10 space-y-4">
+                <button
+                  onClick={() => setShowAmortization((v) => !v)}
+                  data-testid="button-toggle-amortization"
+                  className="flex items-center gap-2 w-full text-left group"
+                >
+                  <div className="flex-1 h-px bg-border/50" />
+                  <span className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-border/60 bg-card/40 text-xs font-semibold uppercase tracking-widest text-muted-foreground group-hover:text-foreground group-hover:border-primary/40 transition-all">
+                    Amortization Schedule
+                    {showAmortization ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                  </span>
+                  <div className="flex-1 h-px bg-border/50" />
+                </button>
+                <AnimatePresence>
+                  {showAmortization && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="overflow-hidden"
+                    >
+                      <AmortizationChart summary={amortizationSummary} data={singleData} />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              <div className="mt-6 space-y-4">
+                <button
+                  onClick={() => setShowBreakEven((v) => !v)}
+                  data-testid="button-toggle-breakeven"
+                  className="flex items-center gap-2 w-full text-left group"
+                >
+                  <div className="flex-1 h-px bg-border/50" />
+                  <span className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-border/60 bg-card/40 text-xs font-semibold uppercase tracking-widest text-muted-foreground group-hover:text-foreground group-hover:border-primary/40 transition-all">
+                    Break-Even Rent Calculator
+                    {showBreakEven ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                  </span>
+                  <div className="flex-1 h-px bg-border/50" />
+                </button>
+                <AnimatePresence>
+                  {showBreakEven && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="overflow-hidden"
+                    >
+                      <BreakEvenCalculator data={singleData} />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
+              className="space-y-10"
+            >
+              <div className="flex items-end justify-between gap-4 flex-wrap">
+                <div>
+                  <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
+                    Portfolio Comparison
+                  </h1>
+                  <p className="text-muted-foreground mt-2">
+                    {isDemoMode
+                      ? "Compare 2 sample properties. Sign up to add up to 4 and save your portfolio."
+                      : "Evaluate up to 4 properties side by side. Best values are highlighted automatically."}
+                  </p>
+                </div>
                 <div className="flex items-center gap-3">
-                  <div className="flex-1 min-w-0">
-                    <label className="text-[10px] text-muted-foreground uppercase tracking-widest block mb-1">
-                      Property Name
-                    </label>
-                    <input
-                      value={singleName}
-                      onChange={(e) => setSingleName(e.target.value)}
-                      className="w-full bg-card/30 border border-border/60 rounded-lg px-3 py-2 text-sm font-semibold text-foreground outline-none focus:border-primary transition-colors"
-                      placeholder="e.g. 123 Main St"
-                      maxLength={48}
-                      data-testid="input-single-property-name"
-                    />
-                  </div>
-                  <div className="mt-5">
-                    <ExportButton
-                      onClick={handleExportAnalyze}
-                      loading={exportingAnalyze}
-                      label="Export PDF"
-                      demo={isDemoMode}
-                      data-testid="button-export-analyze"
-                    />
-                  </div>
+                  {properties.length < maxProperties && (
+                    <button
+                      onClick={() => void handleAdd()}
+                      data-testid="button-add-property"
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg border border-primary/50 text-primary text-sm font-semibold hover:bg-primary/10 transition-colors"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add Property
+                    </button>
+                  )}
+                  {isDemoMode && properties.length >= maxProperties && (
+                    <button
+                      onClick={exitDemoMode}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg border border-primary/30 text-primary/70 text-xs font-semibold hover:bg-primary/10 transition-colors"
+                      title="Create a free account to compare up to 4 properties"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add Property
+                      <span className="ml-1 text-[10px] bg-primary/15 px-1.5 py-0.5 rounded-full">Full version</span>
+                    </button>
+                  )}
+                  <ExportButton
+                    onClick={handleExportCompare}
+                    loading={exportingCompare}
+                    label="Export PDF"
+                    demo={isDemoMode}
+                    data-testid="button-export-compare"
+                  />
                 </div>
-
-                <div className="bg-card/30 p-6 md:p-8 rounded-2xl border border-border/50">
-                  <PropertyForm data={singleData} onChange={setSingleData} />
-                </div>
               </div>
-              <div className="lg:col-span-5 lg:sticky lg:top-24">
-                <ResultsCard results={singleResults} />
-              </div>
-            </div>
 
-            {/* Amortization section */}
-            <div className="mt-10 space-y-4">
-              <button
-                onClick={() => setShowAmortization((v) => !v)}
-                data-testid="button-toggle-amortization"
-                className="flex items-center gap-2 w-full text-left group"
-              >
-                <div className="flex-1 h-px bg-border/50" />
-                <span className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-border/60 bg-card/40 text-xs font-semibold uppercase tracking-widest text-muted-foreground group-hover:text-foreground group-hover:border-primary/40 transition-all">
-                  Amortization Schedule
-                  {showAmortization ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                </span>
-                <div className="flex-1 h-px bg-border/50" />
-              </button>
-              <AnimatePresence>
-                {showAmortization && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="overflow-hidden"
-                  >
-                    <AmortizationChart summary={amortizationSummary} data={singleData} />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Break-even section */}
-            <div className="mt-6 space-y-4">
-              <button
-                onClick={() => setShowBreakEven((v) => !v)}
-                data-testid="button-toggle-breakeven"
-                className="flex items-center gap-2 w-full text-left group"
-              >
-                <div className="flex-1 h-px bg-border/50" />
-                <span className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-border/60 bg-card/40 text-xs font-semibold uppercase tracking-widest text-muted-foreground group-hover:text-foreground group-hover:border-primary/40 transition-all">
-                  Break-Even Rent Calculator
-                  {showBreakEven ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                </span>
-                <div className="flex-1 h-px bg-border/50" />
-              </button>
-              <AnimatePresence>
-                {showBreakEven && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="overflow-hidden"
-                  >
-                    <BreakEvenCalculator data={singleData} />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-          </motion.main>
-        ) : (
-          <motion.main
-            key="compare"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-            className="container mx-auto max-w-7xl px-4 py-8 md:py-12 space-y-10"
-          >
-            <div className="flex items-end justify-between gap-4 flex-wrap">
-              <div>
-                <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
-                  Portfolio Comparison
-                </h1>
-                <p className="text-muted-foreground mt-2">
-                  {isDemoMode
-                    ? "Compare 2 sample properties. Sign up to add up to 4 and save your portfolio."
-                    : "Evaluate up to 4 properties side by side. Best values are highlighted automatically."}
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                {properties.length < maxProperties && (
-                  <button
-                    onClick={() => void handleAdd()}
-                    data-testid="button-add-property"
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg border border-primary/50 text-primary text-sm font-semibold hover:bg-primary/10 transition-colors"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Add Property
-                  </button>
-                )}
-                {isDemoMode && properties.length >= maxProperties && (
-                  <button
-                    onClick={exitDemoMode}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg border border-primary/30 text-primary/70 text-xs font-semibold hover:bg-primary/10 transition-colors"
-                    title="Create a free account to compare up to 4 properties"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Add Property
-                    <span className="ml-1 text-[10px] bg-primary/15 px-1.5 py-0.5 rounded-full">Full version</span>
-                  </button>
-                )}
-                <ExportButton
-                  onClick={handleExportCompare}
-                  loading={exportingCompare}
-                  label="Export PDF"
-                  demo={isDemoMode}
-                  data-testid="button-export-compare"
-                />
-              </div>
-            </div>
-
-            <AnimatePresence>
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                 {properties.map((p, i) => (
                   <PropertyCard
@@ -527,12 +519,12 @@ function Home({ isDemoMode }: { isDemoMode: boolean }) {
                   />
                 ))}
               </div>
-            </AnimatePresence>
 
-            <ComparisonTable properties={comparisonEntries} />
-          </motion.main>
-        ))}
-      </AnimatePresence>
+              <ComparisonTable properties={comparisonEntries} />
+            </motion.div>
+          )}
+        </main>
+      )}
     </div>
   );
 }
