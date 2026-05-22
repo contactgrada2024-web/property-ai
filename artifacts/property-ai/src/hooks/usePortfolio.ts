@@ -71,7 +71,6 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
     } catch (err: any) {
       _setSaveStatus("error");
       setDbError(err?.message || "Save failed. Check console for details.");
-      throw err;
     }
   }
 
