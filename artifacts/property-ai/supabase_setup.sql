@@ -19,7 +19,7 @@ alter table properties enable row level security;
 
 create policy "select own" on properties for select using (auth.uid() = user_id);
 create policy "insert own" on properties for insert with check (auth.uid() = user_id);
-create policy "update own" on properties for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "update own" on properties for update using (auth.uid() = user_id);
 create policy "delete own" on properties for delete using (auth.uid() = user_id);
 
 -- Auto-populate user_id from the authenticated session
