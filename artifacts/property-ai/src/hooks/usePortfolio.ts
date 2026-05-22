@@ -53,6 +53,7 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
   function schedule(key: string, fn: () => Promise<void>) {
     if (demo) return; // no-op in demo
     dirty.current.set(key, fn);
+    console.log("[PERSIST] schedule queued:", key, "dirty count:", dirty.current.size);
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     debounceTimer.current = setTimeout(flush, 1500);
   }
@@ -61,14 +62,17 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
     debounceTimer.current = null;
     const fns = [...dirty.current.values()];
     dirty.current.clear();
+    console.log("[PERSIST] flush firing with", fns.length, "queued save(s)");
     if (!fns.length) return;
     _setSaveStatus("saving");
     try {
       await Promise.all(fns.map((f) => f()));
       _setSaveStatus("saved");
+      console.log("[PERSIST] flush succeeded");
       if (savedTimer.current) clearTimeout(savedTimer.current);
       savedTimer.current = setTimeout(() => _setSaveStatus("idle"), 2500);
-    } catch {
+    } catch (err: any) {
+      console.error("[PERSIST] flush FAILED:", err?.message || String(err));
       _setSaveStatus("error");
     }
   }
@@ -86,6 +90,7 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
         // --- Analyze mode ---
         if (analyze[0]) {
           analyzeDbId.current = analyze[0].id;
+          console.log("[PERSIST] load effect set analyzeDbId:", analyzeDbId.current, "data:", analyze[0].data);
           _setAnalyzeName(analyze[0].name);
           _setAnalyzeData(analyze[0].data as PropertyData);
         } else {
@@ -96,6 +101,7 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
             sort_order: 0,
           });
           analyzeDbId.current = row.id;
+          console.log("[PERSIST] load effect created fallback analyze row, id:", analyzeDbId.current);
         }
 
         // --- Compare mode ---
@@ -155,7 +161,9 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
       _setAnalyzeData(data);
       if (!demo) {
         const id = analyzeDbId.current;
+        console.log("[PERSIST] setAnalyzeData called, analyzeDbId:", id);
         if (id) schedule("analyze-data", () => dbUpdate(id, { data }));
+        else console.warn("[PERSIST] setAnalyzeData skipped — no analyzeDbId");
       }
     },
     [demo]

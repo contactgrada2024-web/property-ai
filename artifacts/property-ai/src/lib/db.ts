@@ -38,8 +38,12 @@ export async function dbUpdate(
   id: string,
   payload: Partial<Pick<DBProperty, "name" | "data" | "sort_order">>
 ): Promise<void> {
-  const { error } = await supabase.from("properties").update(payload).eq("id", id);
+  const { data, error } = await supabase.from("properties").update(payload).eq("id", id).select();
+  console.log("[PERSIST] dbUpdate id:", id, "payload:", Object.keys(payload), "rows affected:", data?.length ?? 0, "error:", error);
   if (error) throw error;
+  if (!data || data.length === 0) {
+    throw new Error("Update blocked — row not found or RLS prevented write. Check user_id on this row.");
+  }
 }
 
 export async function dbDelete(id: string): Promise<void> {
