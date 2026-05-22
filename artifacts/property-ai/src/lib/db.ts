@@ -63,22 +63,16 @@ export async function dbUpdate(
   const userId = userData.user?.id;
   if (!userId) throw new Error("Not authenticated — cannot update property.");
 
-  const { data, error } = await supabase
+  // Ensure JSONB payload is a clean plain object (not a Proxy or reactive wrapper).
+  const cleanPayload = JSON.parse(JSON.stringify(payload));
+
+  const { error } = await supabase
     .from("properties")
-    .update(payload)
+    .update(cleanPayload)
     .eq("id", id)
-    .eq("user_id", userId)
-    .select(COLS)
-    .single();
+    .eq("user_id", userId);
 
   if (error) throw error;
-  if (!data) {
-    throw new Error(
-      `dbUpdate FAILED — no row returned for properties.id=${id}. ` +
-      `Possible causes: (1) row does not exist, (2) row belongs to a different user, ` +
-      `(3) RLS UPDATE policy blocked the write. Authenticated user=${userId}.`
-    );
-  }
 }
 
 export async function dbDelete(id: string): Promise<void> {
