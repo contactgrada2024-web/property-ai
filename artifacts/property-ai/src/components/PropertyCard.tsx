@@ -94,20 +94,33 @@ export default function PropertyCard({
     mode: "onChange",
   });
 
-  // Reset the form ONLY when the incoming data is different from the form's
-  // current values. This handles DB load (form has defaults, prop has saved
-  // data) without racing user keystrokes (form value already matches prop).
+  // Reset the form ONLY when the incoming data differs from the form's current
+  // values. During user typing, the form values and the prop stay in sync, so
+  // no reset fires. During DB load, the prop contains saved data while the form
+  // still holds defaults — the mismatch triggers a single reset.
+  // We use a numeric field comparison rather than JSON.stringify to avoid false
+  // positives caused by react-hook-form internal proxies or field ordering.
   useEffect(() => {
     const current = form.getValues();
-    if (JSON.stringify(current) !== JSON.stringify(data)) {
+    let diff = false;
+    (Object.keys(propertySchema.shape) as (keyof PropertyData)[]).forEach((k) => {
+      if (current[k] !== data[k]) diff = true;
+    });
+    if (diff) {
       form.reset(data);
     }
   }, [data, form]);
 
+  // Propagate user edits upward. Typing changes the form value, which then
+  // updates the parent state. On the next render the parent passes the updated
+  // prop back down, but the numeric comparison above sees they match and skips
+  // the reset — no race, cursor preserved.
   useEffect(() => {
     const subscription = form.watch((value) => {
       const parsed = propertySchema.safeParse(value);
-      if (parsed.success) onChange(id, parsed.data);
+      if (parsed.success) {
+        onChange(id, parsed.data);
+      }
     });
     return () => subscription.unsubscribe();
   }, [form.watch, onChange, id]);
@@ -175,6 +188,7 @@ export default function PropertyCard({
             <FieldInput control={form.control} name="maintenance" label="Maintenance" prefix testId={`input-maint-${id}`} />
             <FieldInput control={form.control} name="hoa" label="HOA / Other" prefix testId={`input-hoa-${id}`} />
             <FieldInput control={form.control} name="sellingCostsPercent" label="Selling Costs %" suffix step="0.1" testId={`input-sc-${id}`} />
+            <FieldInput control={form.control} name="appreciationRatePercent" label="Appreciation %" suffix step="0.1" testId={`input-apr-${id}`} />
           </div>
         </form>
       </Form>

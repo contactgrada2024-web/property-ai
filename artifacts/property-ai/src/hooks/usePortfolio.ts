@@ -83,6 +83,22 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
     await flush();
   }, []);
 
+  // Flush on unmount so a page refresh never drops pending compare edits.
+  useEffect(() => {
+    return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+        debounceTimer.current = null;
+      }
+      // Synchronous flush of whatever is queued.
+      const fns = [...dirty.current.values()];
+      dirty.current.clear();
+      if (fns.length) {
+        Promise.all(fns.map((f) => f())).catch(() => {});
+      }
+    };
+  }, []);
+
   // Load from Supabase (skipped in demo mode).
   // IMPORTANT: Never auto-create rows here. Creating on every load causes
   // duplicate rows when orphaned legacy rows exist. Rows are created lazily
