@@ -19,6 +19,7 @@ const DEFAULT_NAMES = ["Property A", "Property B", "Property C", "Property D"];
 
 export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
   const [loading, setLoading] = useState(!demo);
+  const [loaded, setLoaded] = useState(demo); // true only after initial DB load finishes
   const [dbError, setDbError] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
 
@@ -145,6 +146,7 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
         }
       } finally {
         setLoading(false);
+        setLoaded(true); // signal that DB load (or error) is complete
       }
     })();
   }, [demo]);
@@ -304,6 +306,7 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
     saveStatus,
     dbError,
     // Lifecycle
+    loaded,
     flushPending,
   };
 }

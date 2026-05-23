@@ -226,6 +226,7 @@ function Home({ isDemoMode }: { isDemoMode: boolean }) {
     updateComparePropertyData: handleDataChange,
     copyFromAnalyze: handleCopyFromAnalyze,
     loading,
+    loaded,
     saveStatus,
     dbError,
     flushPending,
@@ -342,7 +343,7 @@ function Home({ isDemoMode }: { isDemoMode: boolean }) {
       )}
 
       {/* ── Main content ── */}
-      {(!loading && !dbError) && (
+      {loaded && !dbError && (
         <main className="container mx-auto max-w-7xl px-4 py-8 md:py-12">
           {mode === "analyze" ? (
             <motion.div
