@@ -19,7 +19,7 @@ import { usePortfolio } from "@/hooks/usePortfolio";
 import {
   Radar, Plus, BarChart2, SlidersHorizontal, Download, Loader2,
   ChevronDown, ChevronUp, LogOut, Cloud, CloudOff, Check, AlertCircle,
-  Zap, UserPlus, LogIn, X,
+  Zap, UserPlus, LogIn, X, Lock,
 } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -219,6 +219,11 @@ function Home({ isDemoMode }: { isDemoMode: boolean }) {
     analyzeData: singleData,
     setAnalyzeName: setSingleName,
     setAnalyzeData: setSingleData,
+    analyzeEntries,
+    activeAnalyzeId,
+    selectAnalyzeProperty,
+    addAnalyzeProperty: handleAddAnalyze,
+    deleteAnalyzeProperty: handleDeleteAnalyze,
     compareProperties: properties,
     addCompareProperty: handleAdd,
     removeCompareProperty: handleRemove,
@@ -351,6 +356,63 @@ function Home({ isDemoMode }: { isDemoMode: boolean }) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2 }}
             >
+              {/* Saved property tabs */}
+              <div className="mb-6 flex items-center gap-2 flex-wrap">
+                {analyzeEntries.map((entry) => (
+                  <button
+                    key={entry.id}
+                    onClick={() => selectAnalyzeProperty(entry.id)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                      entry.id === activeAnalyzeId
+                        ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                        : "bg-card/50 text-muted-foreground border-border/60 hover:text-foreground hover:border-primary/40"
+                    }`}
+                    data-testid={`tab-analyze-${entry.id}`}
+                  >
+                    <Radar className="h-3 w-3" />
+                    <span className="max-w-[120px] truncate">{entry.name || "Untitled"}</span>
+                    {analyzeEntries.length > 1 && !isDemoMode && (
+                      <span
+                        onClick={(e) => { e.stopPropagation(); void handleDeleteAnalyze(entry.id); }}
+                        className="ml-1 text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
+                        title="Delete property"
+                      >
+                        <X className="h-3 w-3" />
+                      </span>
+                    )}
+                  </button>
+                ))}
+
+                {isDemoMode ? (
+                  <button
+                    onClick={exitDemoMode}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-dashed border-border/60 text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all"
+                    data-testid="tab-analyze-locked"
+                    title="Create a free account to save properties"
+                  >
+                    <Lock className="h-3 w-3" />
+                    Slot 2
+                  </button>
+                ) : (
+                  analyzeEntries.length < 3 && (
+                    <button
+                      onClick={() => void handleAddAnalyze()}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-dashed border-primary/40 text-primary hover:bg-primary/10 transition-all"
+                      data-testid="button-add-analyze-property"
+                    >
+                      <Plus className="h-3 w-3" />
+                      Add Property
+                    </button>
+                  )
+                )}
+
+                {!isDemoMode && analyzeEntries.length >= 3 && (
+                  <span className="text-[10px] text-muted-foreground font-medium">
+                    Max 3 saved properties reached
+                  </span>
+                )}
+              </div>
+
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
                 <div className="lg:col-span-7 space-y-6">
                   <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -390,7 +452,8 @@ function Home({ isDemoMode }: { isDemoMode: boolean }) {
                   </div>
 
                   <div className="bg-card/30 p-6 md:p-8 rounded-2xl border border-border/50">
-                    <PropertyForm data={singleData} onChange={setSingleData} />
+                    {/* Key remount ensures form rebuilds with correct values on tab switch */}
+                    <PropertyForm key={activeAnalyzeId ?? "analyze"} data={singleData} onChange={setSingleData} />
                   </div>
                 </div>
                 <div className="lg:col-span-5 lg:sticky lg:top-24">

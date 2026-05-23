@@ -94,9 +94,18 @@ export default function PropertyCard({
     mode: "onChange",
   });
 
-  // Propagate user edits upward. Typing changes the form value, which then
-  // updates the parent state. The parent only renders this component after
-  // loaded=true, so defaultValues already contains the persisted DB data.
+  // Compare cards must accept external data changes (e.g. Copy from Analyze).
+  // Reset only when the data prop differs from the form's current values.
+  useEffect(() => {
+    const current = form.getValues();
+    let diff = false;
+    (Object.keys(propertySchema.shape) as (keyof PropertyData)[]).forEach((k) => {
+      if (current[k] !== data[k]) diff = true;
+    });
+    if (diff) form.reset(data);
+  }, [data, form]);
+
+  // Propagate user edits upward.
   useEffect(() => {
     const subscription = form.watch((value) => {
       const parsed = propertySchema.safeParse(value);
