@@ -25,12 +25,15 @@ export default function PropertyForm({ data, onChange }: PropertyFormProps) {
     mode: "onChange",
   });
 
-  // Do NOT call form.reset(data) in an effect. The form is the source of
-  // truth for its own values once mounted. onChange propagates edits upward
-  // to the parent (and to Supabase). Re-setting from props on every parent
-  // re-render causes a race where keystrokes get overwritten.
-  // defaultValues is correct at mount because the parent only renders this
-  // component after loading finishes (loading spinner covers the gap).
+  // Reset the form ONLY when the incoming data is different from the form's
+  // current values. This handles DB load (form has defaults, prop has saved
+  // data) without racing user keystrokes (form value already matches prop).
+  useEffect(() => {
+    const current = form.getValues();
+    if (JSON.stringify(current) !== JSON.stringify(data)) {
+      form.reset(data);
+    }
+  }, [data, form]);
 
   useEffect(() => {
     const subscription = form.watch((value) => {
