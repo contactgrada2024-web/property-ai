@@ -2,8 +2,9 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
+import { useI18n } from "@/lib/i18n";
 import { Loader2, Mail, Lock, Eye, EyeOff, Building2, CheckCircle2, Zap, Chrome } from "lucide-react";
- 
+
 type Tab = "signin" | "signup";
 
 function FieldInput({
@@ -63,6 +64,7 @@ function FieldInput({
 
 export default function AuthPage() {
   const { enterDemoMode } = useAuth();
+  const { t } = useI18n();
   const [tab, setTab] = useState<Tab>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -90,17 +92,17 @@ export default function AuthPage() {
     setError(null);
 
     if (!email.trim() || !password) {
-      setError("Email and password are required.");
+      setError(t("emailPasswordRequired"));
       return;
     }
 
     if (tab === "signup") {
       if (password !== confirmPassword) {
-        setError("Passwords do not match.");
+        setError(t("passwordsDoNotMatch"));
         return;
       }
       if (password.length < 6) {
-        setError("Password must be at least 6 characters.");
+        setError(t("passwordMinLength"));
         return;
       }
     }
@@ -112,15 +114,9 @@ export default function AuthPage() {
         if (error) setError(error.message);
       } else {
         const { data, error } = await supabase.auth.signUp({
-  email: email.trim(),
-  password,
-});
-
-// Signin result handled below
-
-if (error) {
-  setError(error.message);
-}
+          email: email.trim(),
+          password,
+        });
         if (error) {
           setError(error.message);
         } else {
@@ -146,7 +142,6 @@ if (error) {
         setError(`OAuth error: ${error.message}`);
         setGoogleLoading(false);
       } else if (data?.url) {
-        // Manually redirect to the authorization URL
         window.location.href = data.url;
       }
     } catch (err: any) {
@@ -157,7 +152,6 @@ if (error) {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Subtle grid background */}
       <div
         className="fixed inset-0 pointer-events-none"
         style={{
@@ -167,28 +161,19 @@ if (error) {
         }}
       />
 
-      {/* Header */}
       <header className="relative z-10 flex items-center justify-between px-6 py-4 border-b border-border/30">
         <div className="flex items-center gap-2">
           <Building2 className="h-5 w-5 text-primary" />
           <span className="font-bold text-lg tracking-tight">
             <span className="text-foreground">Property</span>
             <span className="text-primary">AI</span>
-         
-</span>
-<p className="text-[10px] text-muted-foreground">
-  Beta · Early access release
-</p>
-         <p className="text-xs text-muted-foreground">
-  Strategic intelligence for rental property investors.
-</p>
+          </span>
         </div>
         <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono">
           Terminal v1.0 // Secure
         </span>
       </header>
 
-      {/* Main */}
       <main className="relative z-10 flex-1 flex items-center justify-center px-4 py-12">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -196,36 +181,33 @@ if (error) {
           transition={{ duration: 0.3 }}
           className="w-full max-w-md space-y-4"
         >
-          {/* Card */}
           <div className="bg-card/40 border border-border/60 rounded-2xl shadow-2xl overflow-hidden backdrop-blur-sm">
-            {/* Tabs */}
             <div className="flex border-b border-border/50">
-              {(["signin", "signup"] as Tab[]).map((t) => (
+              {(["signin", "signup"] as Tab[]).map((tabKey) => (
                 <button
-                  key={t}
-                  onClick={() => switchTab(t)}
-                  data-testid={`tab-${t}`}
+                  key={tabKey}
+                  onClick={() => switchTab(tabKey)}
+                  data-testid={`tab-${tabKey}`}
                   className={`flex-1 py-3.5 text-xs font-semibold uppercase tracking-widest transition-all ${
-                    tab === t
+                    tab === tabKey
                       ? "text-primary border-b-2 border-primary bg-primary/5"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {t === "signin" ? "Sign In" : "Create Account"}
+                  {tabKey === "signin" ? t("signIn") : t("createAccount")}
                 </button>
               ))}
             </div>
 
             <div className="p-7 space-y-6">
-              {/* Heading */}
               <div>
                 <h1 className="text-xl font-bold text-foreground">
-                  {tab === "signin" ? "Welcome back" : "Get started"}
+                  {tab === "signin" ? t("welcomeBack") : t("getStarted")}
                 </h1>
                 <p className="text-sm text-muted-foreground mt-1">
                   {tab === "signin"
-                    ? "Sign in to access your property portfolio."
-                    : "Create an account to start analysing properties."}
+                    ? t("signInToAccess")
+                    : t("createToStart")}
                 </p>
               </div>
 
@@ -239,17 +221,16 @@ if (error) {
                   >
                     <CheckCircle2 className="h-12 w-12 text-primary mx-auto" />
                     <div>
-                      <p className="font-semibold text-foreground">Check your email</p>
+                      <p className="font-semibold text-foreground">{t("checkYourEmail")}</p>
                       <p className="text-sm text-muted-foreground mt-1">
-                        We sent a confirmation link to <span className="text-primary font-mono">{email}</span>.
-                        Click it to activate your account, then sign in.
+                        {t("confirmationLinkSent", { email })}
                       </p>
                     </div>
                     <button
                       onClick={() => switchTab("signin")}
                       className="text-xs text-primary underline underline-offset-2 hover:opacity-80 transition-opacity"
                     >
-                      Back to Sign In
+                      {t("backToSignIn")}
                     </button>
                   </motion.div>
                 ) : (
@@ -265,7 +246,7 @@ if (error) {
                   >
                     <FieldInput
                       id="email"
-                      label="Email"
+                      label={t("email")}
                       type="email"
                       value={email}
                       onChange={setEmail}
@@ -276,7 +257,7 @@ if (error) {
                     />
                     <FieldInput
                       id="password"
-                      label="Password"
+                      label={t("password")}
                       type="password"
                       value={password}
                       onChange={setPassword}
@@ -288,7 +269,7 @@ if (error) {
                     {tab === "signup" && (
                       <FieldInput
                         id="confirm-password"
-                        label="Confirm Password"
+                        label={t("confirmPassword")}
                         type="password"
                         value={confirmPassword}
                         onChange={setConfirmPassword}
@@ -299,7 +280,6 @@ if (error) {
                       />
                     )}
 
-                    {/* Error */}
                     <AnimatePresence>
                       {error && (
                         <motion.p
@@ -321,22 +301,22 @@ if (error) {
                       className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-md"
                     >
                       {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                      {tab === "signin" ? "Sign In" : "Create Account"}
+                      {tab === "signin" ? t("signIn") : t("createAccount")}
                     </button>
 
                     <p className="text-center text-xs text-muted-foreground">
                       {tab === "signin" ? (
                         <>
-                          No account?{" "}
+                          {t("noAccount")}{" "}
                           <button type="button" onClick={() => switchTab("signup")} className="text-primary underline underline-offset-2 hover:opacity-80">
-                            Create one
+                            {t("createOne")}
                           </button>
                         </>
                       ) : (
                         <>
-                          Already have an account?{" "}
+                          {t("alreadyHaveAccount")}{" "}
                           <button type="button" onClick={() => switchTab("signin")} className="text-primary underline underline-offset-2 hover:opacity-80">
-                            Sign in
+                            {t("signIn")}
                           </button>
                         </>
                       )}
@@ -346,14 +326,12 @@ if (error) {
               </AnimatePresence>
             </div>
 
-            {/* Divider */}
             <div className="relative flex items-center gap-3 px-7 py-2">
               <div className="flex-1 h-px bg-border/40" />
               <span className="text-[10px] uppercase tracking-widest text-muted-foreground/60 font-mono">or</span>
               <div className="flex-1 h-px bg-border/40" />
             </div>
 
-            {/* Google OAuth Button */}
             <div className="px-7 pb-7 pointer-events-auto">
               <button
                 type="button"
@@ -368,12 +346,11 @@ if (error) {
                 ) : (
                   <Chrome className="h-4 w-4" />
                 )}
-                Continue with Google
+                {t("continueWithGoogle")}
               </button>
             </div>
           </div>
 
-          {/* Try Demo */}
           <div className="relative flex items-center gap-3">
             <div className="flex-1 h-px bg-border/40" />
             <span className="text-[10px] uppercase tracking-widest text-muted-foreground/60 font-mono">or</span>
@@ -388,11 +365,11 @@ if (error) {
             className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl border border-primary/30 bg-primary/5 text-primary text-sm font-semibold hover:bg-primary/10 hover:border-primary/50 transition-all shadow-sm"
           >
             <Zap className="h-4 w-4" />
-            Try Demo — no account needed
+            {t("tryDemo")}
           </motion.button>
 
           <p className="text-center text-[10px] text-muted-foreground/50">
-            PropertyAI · All data stays in your browser · Not financial advice
+            PropertyAI &middot; All data stays in your browser &middot; Not financial advice
           </p>
         </motion.div>
       </main>

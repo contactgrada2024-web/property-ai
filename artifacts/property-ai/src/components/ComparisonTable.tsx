@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { CalculationResults, formatCurrency, formatPercent } from "@/lib/calculations";
 import { motion } from "framer-motion";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 interface PropertyEntry {
   id: string;
@@ -30,65 +31,14 @@ const COLUMN_COLORS = [
 type Direction = "high" | "low" | "none";
 
 interface RowDef {
-  label: string;
-  subLabel?: string;
+  labelKey: string;
   getValue: (r: CalculationResults) => number;
   format: (v: number) => string;
   direction: Direction;
   highlight: boolean;
+  isCashFlow?: boolean;
+  isHealth?: boolean;
 }
-
-const ROWS: RowDef[] = [
-  {
-    label: "Monthly Cash Flow",
-    getValue: (r) => r.monthlyCashFlow,
-    format: formatCurrency,
-    direction: "high",
-    highlight: true,
-  },
-  {
-    label: "Annual Cash Flow",
-    getValue: (r) => r.annualCashFlow,
-    format: formatCurrency,
-    direction: "high",
-    highlight: false,
-  },
-  {
-    label: "Available Equity",
-    getValue: (r) => r.availableEquity,
-    format: formatCurrency,
-    direction: "high",
-    highlight: true,
-  },
-  {
-    label: "Equity Strength",
-    getValue: (r) => r.equityStrengthPercent,
-    format: (v) => `${v.toFixed(1)}%`,
-    direction: "high",
-    highlight: false,
-  },
-  {
-    label: "Cash If Sold Today",
-    getValue: (r) => r.estimatedCashIfSoldToday,
-    format: formatCurrency,
-    direction: "high",
-    highlight: true,
-  },
-  {
-    label: "Capital Efficiency",
-    getValue: (r) => r.capitalEfficiencyPercent,
-    format: (v) => `${v.toFixed(1)}%`,
-    direction: "high",
-    highlight: false,
-  },
-  {
-    label: "Health Score",
-    getValue: (r) => r.propertyHealthScore,
-    format: (v) => `${v.toFixed(1)} / 2.0`,
-    direction: "high",
-    highlight: true,
-  },
-];
 
 function getBestWorst(values: number[], direction: Direction): { best: number; worst: number } {
   if (direction === "none" || values.length < 2) return { best: -Infinity, worst: Infinity };
@@ -118,6 +68,63 @@ function HealthDots({ score }: { score: number }) {
 }
 
 export default function ComparisonTable({ properties }: ComparisonTableProps) {
+  const { t } = useI18n();
+
+  const ROWS: RowDef[] = useMemo(() => [
+    {
+      labelKey: "monthlyCashFlow",
+      getValue: (r) => r.monthlyCashFlow,
+      format: formatCurrency,
+      direction: "high",
+      highlight: true,
+      isCashFlow: true,
+    },
+    {
+      labelKey: "annualCashFlow",
+      getValue: (r) => r.annualCashFlow,
+      format: formatCurrency,
+      direction: "high",
+      highlight: false,
+      isCashFlow: true,
+    },
+    {
+      labelKey: "availableEquity",
+      getValue: (r) => r.availableEquity,
+      format: formatCurrency,
+      direction: "high",
+      highlight: true,
+    },
+    {
+      labelKey: "equityStrength",
+      getValue: (r) => r.equityStrengthPercent,
+      format: (v) => `${v.toFixed(1)}%`,
+      direction: "high",
+      highlight: false,
+    },
+    {
+      labelKey: "cashIfSoldToday",
+      getValue: (r) => r.estimatedCashIfSoldToday,
+      format: formatCurrency,
+      direction: "high",
+      highlight: true,
+    },
+    {
+      labelKey: "capitalEfficiency",
+      getValue: (r) => r.capitalEfficiencyPercent,
+      format: (v) => `${v.toFixed(1)}%`,
+      direction: "high",
+      highlight: false,
+    },
+    {
+      labelKey: "healthScore",
+      getValue: (r) => r.propertyHealthScore,
+      format: (v) => `${v.toFixed(1)} / 2.0`,
+      direction: "high",
+      highlight: true,
+      isHealth: true,
+    },
+  ], []);
+
   const ranked = useMemo(() => {
     return properties.map((p) => ({
       ...p,
@@ -130,6 +137,14 @@ export default function ComparisonTable({ properties }: ComparisonTableProps) {
     return ranked.reduce((a, b) => (a.rank >= b.rank ? a : b)).id;
   }, [ranked]);
 
+  // Strategy signal translation map (results emit English strings)
+  const strategyKeyMap: Record<string, string> = {
+    Hold: t("hold"),
+    Refinance: t("refinance"),
+    Optimize: t("optimize"),
+    Sell: t("sell"),
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -140,11 +155,11 @@ export default function ComparisonTable({ properties }: ComparisonTableProps) {
     >
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-base font-semibold tracking-tight text-foreground uppercase text-xs text-muted-foreground tracking-widest">
-          Side-by-Side Analysis
+          {t("sideBySideAnalysis")}
         </h2>
         {topId && (
           <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-            Best:{" "}
+            {t("best")}:{" "}
             <span className="text-primary font-semibold">
               {properties.find((p) => p.id === topId)?.name}
             </span>
@@ -157,7 +172,7 @@ export default function ComparisonTable({ properties }: ComparisonTableProps) {
           <thead>
             <tr className="border-b border-border/60 bg-card/60">
               <th className="text-left px-4 py-3 text-xs text-muted-foreground uppercase tracking-widest font-medium w-44">
-                Metric
+                {t("metric")}
               </th>
               {properties.map((p, i) => (
                 <th
@@ -168,7 +183,7 @@ export default function ComparisonTable({ properties }: ComparisonTableProps) {
                   {p.id === topId ? (
                     <span className="inline-flex items-center gap-1">
                       {p.name}
-                      <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-bold tracking-wider">TOP</span>
+                      <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-bold tracking-wider">{t("top")}</span>
                     </span>
                   ) : (
                     p.name
@@ -184,19 +199,16 @@ export default function ComparisonTable({ properties }: ComparisonTableProps) {
 
               return (
                 <tr
-                  key={row.label}
+                  key={row.labelKey}
                   className={`border-b border-border/30 ${rowIdx % 2 === 0 ? "bg-card/20" : "bg-transparent"}`}
                 >
                   <td className="px-4 py-3 text-xs text-muted-foreground uppercase tracking-wider font-medium whitespace-nowrap">
-                    {row.label}
+                    {t(row.labelKey as any)}
                   </td>
                   {properties.map((p, colIdx) => {
                     const val = row.getValue(p.results);
                     const isBest = row.direction !== "none" && properties.length > 1 && val === best;
                     const isWorst = row.direction !== "none" && properties.length > 1 && val === worst && worst !== best;
-
-                    const isCashFlow = row.label === "Monthly Cash Flow" || row.label === "Annual Cash Flow";
-                    const isHealth = row.label === "Health Score";
 
                     return (
                       <td
@@ -208,14 +220,14 @@ export default function ComparisonTable({ properties }: ComparisonTableProps) {
                             ? "text-rose-400"
                             : "text-foreground"
                         }`}
-                        data-testid={`cell-${row.label.toLowerCase().replace(/\s/g, "-")}-${p.id}`}
+                        data-testid={`cell-${row.labelKey.toLowerCase().replace(/([A-Z])/g, "-$1")}-${p.id}`}
                       >
                         {row.format(val)}
-                        {isCashFlow && <CashFlowIndicator value={val} />}
-                        {isHealth && <HealthDots score={val} />}
+                        {row.isCashFlow && <CashFlowIndicator value={val} />}
+                        {row.isHealth && <HealthDots score={val} />}
                         {isBest && properties.length > 1 && (
                           <span className="ml-1.5 text-[9px] bg-emerald-500/20 text-emerald-400 px-1 py-0.5 rounded font-bold">
-                            BEST
+                            {t("best")}
                           </span>
                         )}
                       </td>
@@ -227,7 +239,7 @@ export default function ComparisonTable({ properties }: ComparisonTableProps) {
 
             <tr className="border-b border-border/30 bg-card/40">
               <td className="px-4 py-3 text-xs text-muted-foreground uppercase tracking-wider font-medium">
-                Strategy Signal
+                {t("strategySignal")}
               </td>
               {properties.map((p) => (
                 <td key={p.id} className="px-4 py-3 text-center" data-testid={`cell-strategy-${p.id}`}>
@@ -236,7 +248,7 @@ export default function ComparisonTable({ properties }: ComparisonTableProps) {
                       SIGNAL_STYLES[p.results.strategySignal] ?? ""
                     }`}
                   >
-                    {p.results.strategySignal}
+                    {strategyKeyMap[p.results.strategySignal] ?? p.results.strategySignal}
                   </span>
                 </td>
               ))}

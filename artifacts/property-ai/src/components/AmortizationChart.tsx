@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import { motion } from "framer-motion";
 import { AmortizationSummary, formatCurrency, PropertyData } from "@/lib/calculations";
+import { useI18n } from "@/lib/i18n";
 import { Calendar, TrendingUp, DollarSign, Percent } from "lucide-react";
 
 interface AmortizationChartProps {
@@ -21,12 +22,6 @@ interface AmortizationChartProps {
 }
 
 type ViewMode = "balance" | "equity" | "interest";
-
-const VIEW_OPTIONS: { key: ViewMode; label: string }[] = [
-  { key: "balance", label: "Balance & Equity" },
-  { key: "equity",  label: "Equity Build" },
-  { key: "interest", label: "Interest vs Principal" },
-];
 
 function StatCard({
   icon,
@@ -59,11 +54,11 @@ function compact(v: number): string {
   return formatCurrency(v);
 }
 
-function CustomTooltip({ active, payload, label }: any) {
+function CustomTooltip({ active, payload, label, t }: any) {
   if (!active || !payload?.length) return null;
   return (
     <div className="bg-card border border-border rounded-xl shadow-xl p-3 text-xs space-y-1.5 min-w-[200px]">
-      <p className="font-bold text-foreground text-sm">Year {label}</p>
+      <p className="font-bold text-foreground text-sm">{t("year")} {label}</p>
       {payload.map((entry: any) => (
         <div key={entry.name} className="flex justify-between gap-4">
           <span style={{ color: entry.color }} className="font-medium">{entry.name}</span>
@@ -75,7 +70,14 @@ function CustomTooltip({ active, payload, label }: any) {
 }
 
 export default function AmortizationChart({ summary, data }: AmortizationChartProps) {
+  const { t } = useI18n();
   const [view, setView] = useState<ViewMode>("balance");
+
+  const VIEW_OPTIONS: { key: ViewMode; label: string }[] = [
+    { key: "balance", label: t("balanceEquity") },
+    { key: "equity",  label: t("equityBuild") },
+    { key: "interest", label: t("interestVsPrincipal") },
+  ];
 
   const chartData = useMemo(() => {
     return [
@@ -97,8 +99,8 @@ export default function AmortizationChart({ summary, data }: AmortizationChartPr
   const payoffLabel = summary.paysOff
     ? summary.payoffYears > 0
       ? `${summary.payoffYears}y ${summary.payoffMonths}m`
-      : `${summary.payoffMonths} months`
-    : "> 30 years";
+      : `${summary.payoffMonths}m`
+    : "> 30y";
 
   const firstMonthPct =
     data.mortgagePayment > 0
@@ -108,7 +110,7 @@ export default function AmortizationChart({ summary, data }: AmortizationChartPr
   if (summary.rows.length === 0) {
     return (
       <div className="bg-card/30 border border-border/50 rounded-2xl p-8 text-center text-muted-foreground text-sm">
-        Enter a valid mortgage balance, payment, and interest rate to see the amortization schedule.
+        {t("enterValidMortgage")}
       </div>
     );
   }
@@ -124,29 +126,29 @@ export default function AmortizationChart({ summary, data }: AmortizationChartPr
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard
           icon={<Calendar className="h-3.5 w-3.5" />}
-          label="Payoff Timeline"
+          label={t("payoffTimeline")}
           value={payoffLabel}
-          sub={summary.paysOff ? "until mortgage free" : "payment too low"}
+          sub={summary.paysOff ? t("untilMortgageFree") : t("paymentTooLow")}
           color="text-primary"
         />
         <StatCard
           icon={<DollarSign className="h-3.5 w-3.5" />}
-          label="Total Interest"
+          label={t("totalInterest")}
           value={compact(summary.totalInterestPaid)}
-          sub="over life of loan"
+          sub={t("overLifeOfLoan")}
           color="text-amber-400"
         />
         <StatCard
           icon={<Percent className="h-3.5 w-3.5" />}
-          label="First Payment Split"
-          value={`${firstMonthPct}% interest`}
-          sub={`${formatCurrency(summary.firstMonthInterest)} interest · ${formatCurrency(summary.firstMonthPrincipal)} principal`}
+          label={t("firstPaymentSplit")}
+          value={`${firstMonthPct}% ${t("interest")}`}
+          sub={`${formatCurrency(summary.firstMonthInterest)} ${t("interest")} \u00b7 ${formatCurrency(summary.firstMonthPrincipal)} ${t("principal")}`}
         />
         <StatCard
           icon={<TrendingUp className="h-3.5 w-3.5" />}
-          label="Equity at Payoff"
+          label={t("equityAtPayoff")}
           value={compact(summary.rows[summary.rows.length - 1]?.totalEquity ?? 0)}
-          sub="incl. appreciation"
+          sub={t("inclAppreciation")}
           color="text-emerald-400"
         />
       </div>
@@ -155,7 +157,7 @@ export default function AmortizationChart({ summary, data }: AmortizationChartPr
       <div className="bg-card/30 border border-border/50 rounded-2xl p-5 md:p-6 space-y-5">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <h3 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-            Amortization Schedule
+            {t("amortizationSchedule")}
           </h3>
           <div className="flex items-center gap-1 bg-background/60 border border-border/50 rounded-lg p-1">
             {VIEW_OPTIONS.map((opt) => (
@@ -194,15 +196,15 @@ export default function AmortizationChart({ summary, data }: AmortizationChartPr
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(215,20%,22%)" />
-                <XAxis dataKey="year" tick={{ fontSize: 11, fill: "hsl(215,20%,55%)" }} tickLine={false} label={{ value: "Year", position: "insideBottomRight", offset: -4, fill: "hsl(215,20%,40%)", fontSize: 10 }} />
+                <XAxis dataKey="year" tick={{ fontSize: 11, fill: "hsl(215,20%,55%)" }} tickLine={false} label={{ value: t("year"), position: "insideBottomRight", offset: -4, fill: "hsl(215,20%,40%)", fontSize: 10 }} />
                 <YAxis tickFormatter={compact} tick={{ fontSize: 10, fill: "hsl(215,20%,55%)" }} tickLine={false} axisLine={false} width={60} />
-                <Tooltip content={<CustomTooltip />} />
+                <Tooltip content={<CustomTooltip t={t} />} />
                 <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
-                <Area type="monotone" dataKey="balance" name="Remaining Balance" stroke="hsl(210,70%,55%)" fill="url(#balanceGrad)" strokeWidth={2} dot={false} />
-                <Area type="monotone" dataKey="paydownEquity" name="Equity (Paydown)" stroke="hsl(168,70%,50%)" fill="url(#paydownGrad)" strokeWidth={2} dot={false} />
-                <Area type="monotone" dataKey="marketEquity" name="Equity (Appreciation)" stroke="hsl(280,60%,65%)" fill="url(#marketGrad)" strokeWidth={2} dot={false} />
+                <Area type="monotone" dataKey="balance" name={t("remainingBalance")} stroke="hsl(210,70%,55%)" fill="url(#balanceGrad)" strokeWidth={2} dot={false} />
+                <Area type="monotone" dataKey="paydownEquity" name={t("equityPaydown")} stroke="hsl(168,70%,50%)" fill="url(#paydownGrad)" strokeWidth={2} dot={false} />
+                <Area type="monotone" dataKey="marketEquity" name={t("equityAppreciation")} stroke="hsl(280,60%,65%)" fill="url(#marketGrad)" strokeWidth={2} dot={false} />
                 {summary.paysOff && (
-                  <ReferenceLine x={summary.payoffYears} stroke="hsl(168,70%,50%)" strokeDasharray="4 3" label={{ value: "Paid off", position: "top", fill: "hsl(168,70%,50%)", fontSize: 10 }} />
+                  <ReferenceLine x={summary.payoffYears} stroke="hsl(168,70%,50%)" strokeDasharray="4 3" label={{ value: t("paidOff"), position: "top", fill: "hsl(168,70%,50%)", fontSize: 10 }} />
                 )}
               </ComposedChart>
             ) : view === "equity" ? (
@@ -216,22 +218,22 @@ export default function AmortizationChart({ summary, data }: AmortizationChartPr
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(215,20%,22%)" />
                 <XAxis dataKey="year" tick={{ fontSize: 11, fill: "hsl(215,20%,55%)" }} tickLine={false} />
                 <YAxis tickFormatter={compact} tick={{ fontSize: 10, fill: "hsl(215,20%,55%)" }} tickLine={false} axisLine={false} width={60} />
-                <Tooltip content={<CustomTooltip />} />
+                <Tooltip content={<CustomTooltip t={t} />} />
                 <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
-                <Area type="monotone" dataKey="totalEquity" name="Total Equity" stroke="hsl(168,70%,50%)" fill="url(#totalEquityGrad)" strokeWidth={2.5} dot={false} />
-                <Line type="monotone" dataKey="paydownEquity" name="Paydown Equity" stroke="hsl(210,70%,60%)" strokeWidth={2} dot={false} strokeDasharray="5 3" />
-                <Line type="monotone" dataKey="marketEquity" name="Market Equity" stroke="hsl(280,60%,65%)" strokeWidth={2} dot={false} strokeDasharray="5 3" />
+                <Area type="monotone" dataKey="totalEquity" name={t("totalEquityLabel")} stroke="hsl(168,70%,50%)" fill="url(#totalEquityGrad)" strokeWidth={2.5} dot={false} />
+                <Line type="monotone" dataKey="paydownEquity" name={t("paydownEquity")} stroke="hsl(210,70%,60%)" strokeWidth={2} dot={false} strokeDasharray="5 3" />
+                <Line type="monotone" dataKey="marketEquity" name={t("marketEquity")} stroke="hsl(280,60%,65%)" strokeWidth={2} dot={false} strokeDasharray="5 3" />
               </ComposedChart>
             ) : (
               <ComposedChart data={chartData.slice(1)} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(215,20%,22%)" />
-                <XAxis dataKey="year" tick={{ fontSize: 11, fill: "hsl(215,20%,55%)" }} tickLine={false} label={{ value: "Year", position: "insideBottomRight", offset: -4, fill: "hsl(215,20%,40%)", fontSize: 10 }} />
+                <XAxis dataKey="year" tick={{ fontSize: 11, fill: "hsl(215,20%,55%)" }} tickLine={false} label={{ value: t("year"), position: "insideBottomRight", offset: -4, fill: "hsl(215,20%,40%)", fontSize: 10 }} />
                 <YAxis tickFormatter={compact} tick={{ fontSize: 10, fill: "hsl(215,20%,55%)" }} tickLine={false} axisLine={false} width={60} />
-                <Tooltip content={<CustomTooltip />} />
+                <Tooltip content={<CustomTooltip t={t} />} />
                 <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
-                <Area type="monotone" dataKey="yearlyInterest" name="Yearly Interest" stroke="hsl(45,90%,55%)" fill="hsl(45,90%,55%)" fillOpacity={0.25} strokeWidth={2} dot={false} />
-                <Area type="monotone" dataKey="yearlyPrincipal" name="Yearly Principal" stroke="hsl(168,70%,50%)" fill="hsl(168,70%,50%)" fillOpacity={0.25} strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="cumulativeInterest" name="Cumulative Interest" stroke="hsl(10,80%,60%)" strokeWidth={2} dot={false} strokeDasharray="5 3" />
+                <Area type="monotone" dataKey="yearlyInterest" name={t("yearlyInterestLabel")} stroke="hsl(45,90%,55%)" fill="hsl(45,90%,55%)" fillOpacity={0.25} strokeWidth={2} dot={false} />
+                <Area type="monotone" dataKey="yearlyPrincipal" name={t("yearlyPrincipalLabel")} stroke="hsl(168,70%,50%)" fill="hsl(168,70%,50%)" fillOpacity={0.25} strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="cumulativeInterest" name={t("cumulativeInterestLabel")} stroke="hsl(10,80%,60%)" strokeWidth={2} dot={false} strokeDasharray="5 3" />
               </ComposedChart>
             )}
           </ResponsiveContainer>
@@ -242,7 +244,7 @@ export default function AmortizationChart({ summary, data }: AmortizationChartPr
           <table className="w-full text-xs" style={{ minWidth: 520 }}>
             <thead>
               <tr className="border-b border-border/50 bg-card/60">
-                {["Year", "Balance", "Yearly Principal", "Yearly Interest", "Cumulative Interest", "Property Value", "Total Equity"].map((h) => (
+                {[t("year"), t("balance"), t("yearlyPrincipal"), t("yearlyInterest"), t("cumulativeInterest"), t("propertyValue"), t("totalEquity")].map((h) => (
                   <th key={h} className="px-3 py-2 text-left text-[10px] uppercase tracking-widest text-muted-foreground font-medium whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -262,7 +264,7 @@ export default function AmortizationChart({ summary, data }: AmortizationChartPr
               {summary.rows.length > 10 && (
                 <tr className="border-b border-border/20 bg-card/10">
                   <td colSpan={7} className="px-3 py-2 text-center text-muted-foreground italic text-[11px]">
-                    Showing first 10 of {summary.rows.length} years — full data visible in chart
+                    {t("showingFirst10", { count: summary.rows.length })}
                   </td>
                 </tr>
               )}

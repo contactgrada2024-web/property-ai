@@ -1,23 +1,42 @@
 import { CalculationResults, formatCurrency, formatPercent } from "@/lib/calculations";
+import { useI18n } from "@/lib/i18n";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { motion, AnimatePresence } from "framer-motion";
 import { Activity, Target, ArrowRightCircle } from "lucide-react";
 
+const signalColors: Record<string, string> = {
+  Hold: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+  Refinance: "bg-blue-500/15 text-blue-400 border-blue-500/30",
+  Optimize: "bg-amber-500/15 text-amber-400 border-amber-500/30",
+  Sell: "bg-red-500/15 text-red-400 border-red-500/30",
+};
+
+const strategyKeyMap: Record<string, string> = {
+  Hold: "hold",
+  Refinance: "refinance",
+  Optimize: "optimize",
+  Sell: "sell",
+};
+
+const strategyDescKeyMap: Record<string, string> = {
+  Hold: "holdDesc",
+  Refinance: "refinanceDesc",
+  Optimize: "optimizeDesc",
+  Sell: "sellDesc",
+};
+
 interface ResultsCardProps {
   results: CalculationResults;
 }
 
 export default function ResultsCard({ results }: ResultsCardProps) {
+  const { t } = useI18n();
   const isPositiveCashFlow = results.monthlyCashFlow >= 0;
-  
-  const signalColors = {
-    Hold: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
-    Refinance: "bg-blue-500/15 text-blue-400 border-blue-500/30",
-    Optimize: "bg-amber-500/15 text-amber-400 border-amber-500/30",
-    Sell: "bg-red-500/15 text-red-400 border-red-500/30"
-  };
+
+  const translatedSignal = t(strategyKeyMap[results.strategySignal] as any) || results.strategySignal;
+  const translatedDesc = t(strategyDescKeyMap[results.strategySignal] as any) || results.strategyDescription;
 
   return (
     <Card className="border-border bg-card/50 backdrop-blur-xl shadow-2xl relative overflow-hidden">
@@ -25,15 +44,15 @@ export default function ResultsCard({ results }: ResultsCardProps) {
       <CardHeader className="pb-4">
         <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest flex items-center gap-2">
           <Activity className="h-4 w-4" />
-          Terminal Output
+          {t("terminalOutput")}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-8">
-        
+
         {/* Strategy Signal */}
         <div className="bg-background/50 rounded-xl p-6 border border-border">
           <div className="flex flex-col items-start gap-3">
-            <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Recommended Action</span>
+            <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">{t("recommendedAction")}</span>
             <AnimatePresence mode="popLayout">
               <motion.div
                 key={results.strategySignal}
@@ -44,11 +63,11 @@ export default function ResultsCard({ results }: ResultsCardProps) {
                 className={`text-4xl font-bold px-4 py-2 rounded-lg border ${signalColors[results.strategySignal]}`}
                 data-testid="text-strategy-signal"
               >
-                {results.strategySignal}
+                {translatedSignal}
               </motion.div>
             </AnimatePresence>
             <p className="text-sm text-muted-foreground mt-2 leading-relaxed" data-testid="text-strategy-desc">
-              {results.strategyDescription}
+              {translatedDesc}
             </p>
           </div>
         </div>
@@ -56,21 +75,21 @@ export default function ResultsCard({ results }: ResultsCardProps) {
         <div className="grid grid-cols-2 gap-x-8 gap-y-6">
           {/* Cash Flow */}
           <div className="space-y-1 col-span-2 sm:col-span-1">
-            <span className="text-xs text-muted-foreground uppercase tracking-wider block">Monthly Cash Flow</span>
-            <span 
+            <span className="text-xs text-muted-foreground uppercase tracking-wider block">{t("monthlyCashFlow")}</span>
+            <span
               className={`text-2xl font-mono tracking-tight block ${isPositiveCashFlow ? 'text-emerald-400' : 'text-red-400'}`}
               data-testid="text-monthly-cf"
             >
               {formatCurrency(results.monthlyCashFlow)}
             </span>
             <span className="text-xs text-muted-foreground block font-mono">
-              {formatCurrency(results.annualCashFlow)} /yr
+              {formatCurrency(results.annualCashFlow)} {t("perYear")}
             </span>
           </div>
 
           {/* Equity */}
           <div className="space-y-1 col-span-2 sm:col-span-1">
-            <span className="text-xs text-muted-foreground uppercase tracking-wider block">Available Equity</span>
+            <span className="text-xs text-muted-foreground uppercase tracking-wider block">{t("availableEquity")}</span>
             <span className="text-2xl font-mono tracking-tight block text-foreground" data-testid="text-available-equity">
               {formatCurrency(results.availableEquity)}
             </span>
@@ -86,12 +105,12 @@ export default function ResultsCard({ results }: ResultsCardProps) {
 
           {/* Cash If Sold */}
           <div className="space-y-1 col-span-2 sm:col-span-1">
-            <span className="text-xs text-muted-foreground uppercase tracking-wider block">Cash If Sold Today</span>
+            <span className="text-xs text-muted-foreground uppercase tracking-wider block">{t("cashIfSoldToday")}</span>
             <span className="text-xl font-mono tracking-tight block text-foreground" data-testid="text-cash-sold">
               {formatCurrency(results.estimatedCashIfSoldToday)}
             </span>
             <span className="text-xs text-muted-foreground block font-mono text-red-400/80">
-              -{formatCurrency(results.estimatedSellingCosts)} costs
+              -{formatCurrency(results.estimatedSellingCosts)} {t("costs")}
             </span>
           </div>
 
@@ -99,25 +118,25 @@ export default function ResultsCard({ results }: ResultsCardProps) {
           <div className="space-y-4 col-span-2 sm:col-span-1">
             <div className="space-y-1">
               <span className="text-xs text-muted-foreground uppercase tracking-wider block flex items-center gap-1">
-                Capital Efficiency
+                {t("capitalEfficiency")}
               </span>
               <span className="text-lg font-mono tracking-tight block text-primary" data-testid="text-capital-efficiency">
                 {formatPercent(results.capitalEfficiencyPercent)}
               </span>
             </div>
-            
+
             <div className="space-y-1">
               <span className="text-xs text-muted-foreground uppercase tracking-wider block flex items-center gap-1">
-                Health Score
+                {t("healthScore")}
               </span>
               <div className="flex items-center gap-2">
                 <div className="flex gap-1">
                   {[0.5, 1.0, 1.5, 2.0].map((threshold) => (
-                    <div 
-                      key={threshold} 
+                    <div
+                      key={threshold}
                       className={`h-2 w-4 rounded-sm transition-colors ${
-                        results.propertyHealthScore >= threshold 
-                          ? 'bg-primary' 
+                        results.propertyHealthScore >= threshold
+                          ? 'bg-primary'
                           : 'bg-muted'
                       }`}
                     />
@@ -129,7 +148,7 @@ export default function ResultsCard({ results }: ResultsCardProps) {
               </div>
             </div>
           </div>
-          
+
         </div>
       </CardContent>
     </Card>

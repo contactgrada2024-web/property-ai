@@ -6,6 +6,7 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from "@/component
 import { Input } from "@/components/ui/input";
 import { DollarSign, Percent, Trash2, Building2, Copy } from "lucide-react";
 import { motion } from "framer-motion";
+import { useI18n } from "@/lib/i18n";
 
 interface PropertyCardProps {
   id: string;
@@ -88,14 +89,14 @@ export default function PropertyCard({
   onRemove,
   onCopyFromAnalyze,
 }: PropertyCardProps) {
+  const { t } = useI18n();
+
   const form = useForm<PropertyData>({
     resolver: zodResolver(propertySchema),
     defaultValues: data,
     mode: "onChange",
   });
 
-  // Compare cards must accept external data changes (e.g. Copy from Analyze).
-  // Reset only when the data prop differs from the form's current values.
   useEffect(() => {
     const current = form.getValues();
     let diff = false;
@@ -105,7 +106,6 @@ export default function PropertyCard({
     if (diff) form.reset(data);
   }, [data, form]);
 
-  // Propagate user edits upward.
   useEffect(() => {
     const subscription = form.watch((value) => {
       const parsed = propertySchema.safeParse(value);
@@ -136,7 +136,7 @@ export default function PropertyCard({
             value={name}
             onChange={(e) => onNameChange(id, e.target.value)}
             className={`bg-transparent text-sm font-semibold tracking-tight outline-none border-b border-transparent focus:border-border transition-colors w-full min-w-0 ${labelClass}`}
-            placeholder="Property name"
+            placeholder={t("propertyName")}
             data-testid={`input-property-name-${id}`}
             maxLength={32}
           />
@@ -146,8 +146,8 @@ export default function PropertyCard({
             <button
               onClick={() => onCopyFromAnalyze(id)}
               className="text-muted-foreground hover:text-primary transition-colors p-1"
-              title="Copy values from Analyze property"
-              aria-label="Copy from analyze"
+              title={t("copyFromAnalyze")}
+              aria-label={t("copyFromAnalyze")}
             >
               <Copy className="h-4 w-4" />
             </button>
@@ -157,7 +157,7 @@ export default function PropertyCard({
               onClick={() => onRemove(id)}
               className="text-muted-foreground hover:text-destructive transition-colors p-1"
               data-testid={`button-remove-property-${id}`}
-              aria-label="Remove property"
+              aria-label={t("deleteProperty")}
             >
               <Trash2 className="h-4 w-4" />
             </button>
@@ -168,18 +168,18 @@ export default function PropertyCard({
       <Form {...form}>
         <form className="p-4 space-y-4" onSubmit={(e) => e.preventDefault()}>
           <div className="grid grid-cols-2 gap-3">
-            <FieldInput control={form.control} name="currentValue" label="Current Value" prefix testId={`input-cv-${id}`} />
-            <FieldInput control={form.control} name="purchasePrice" label="Purchase Price" prefix testId={`input-pp-${id}`} />
-            <FieldInput control={form.control} name="mortgageBalance" label="Mortgage Balance" prefix testId={`input-mb-${id}`} />
-            <FieldInput control={form.control} name="interestRate" label="Interest Rate %" suffix step="0.1" testId={`input-ir-${id}`} />
-            <FieldInput control={form.control} name="rentalIncome" label="Monthly Rent" prefix testId={`input-ri-${id}`} />
-            <FieldInput control={form.control} name="mortgagePayment" label="Mortgage Payment" prefix testId={`input-mp-${id}`} />
-            <FieldInput control={form.control} name="propertyTax" label="Property Tax" prefix testId={`input-pt-${id}`} />
-            <FieldInput control={form.control} name="insurance" label="Insurance" prefix testId={`input-ins-${id}`} />
-            <FieldInput control={form.control} name="maintenance" label="Maintenance" prefix testId={`input-maint-${id}`} />
-            <FieldInput control={form.control} name="hoa" label="HOA / Other" prefix testId={`input-hoa-${id}`} />
-            <FieldInput control={form.control} name="sellingCostsPercent" label="Selling Costs %" suffix step="0.1" testId={`input-sc-${id}`} />
-            <FieldInput control={form.control} name="appreciationRatePercent" label="Appreciation %" suffix step="0.1" testId={`input-apr-${id}`} />
+            <FieldInput control={form.control} name="currentValue" label={t("currentValue")} prefix testId={`input-cv-${id}`} />
+            <FieldInput control={form.control} name="purchasePrice" label={t("purchasePrice")} prefix testId={`input-pp-${id}`} />
+            <FieldInput control={form.control} name="mortgageBalance" label={t("mortgageBalance")} prefix testId={`input-mb-${id}`} />
+            <FieldInput control={form.control} name="interestRate" label={`${t("interestRate")} %`} suffix step="0.1" testId={`input-ir-${id}`} />
+            <FieldInput control={form.control} name="rentalIncome" label={t("monthlyRent")} prefix testId={`input-ri-${id}`} />
+            <FieldInput control={form.control} name="mortgagePayment" label={t("mortgagePayment")} prefix testId={`input-mp-${id}`} />
+            <FieldInput control={form.control} name="propertyTax" label={t("propertyTax")} prefix testId={`input-pt-${id}`} />
+            <FieldInput control={form.control} name="insurance" label={t("insurance")} prefix testId={`input-ins-${id}`} />
+            <FieldInput control={form.control} name="maintenance" label={t("maintenance")} prefix testId={`input-maint-${id}`} />
+            <FieldInput control={form.control} name="hoa" label={t("hoaOther")} prefix testId={`input-hoa-${id}`} />
+            <FieldInput control={form.control} name="sellingCostsPercent" label={`${t("sellingCostsPercent")} %`} suffix step="0.1" testId={`input-sc-${id}`} />
+            <FieldInput control={form.control} name="appreciationRatePercent" label={`${t("appreciationRatePercent")} %`} suffix step="0.1" testId={`input-apr-${id}`} />
           </div>
         </form>
       </Form>

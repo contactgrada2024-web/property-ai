@@ -18,6 +18,7 @@ import {
   calculateBreakEven,
   formatCurrency,
 } from "@/lib/calculations";
+import { useI18n } from "@/lib/i18n";
 import { AlertTriangle, CheckCircle2, Percent, TrendingDown } from "lucide-react";
 
 interface BreakEvenCalculatorProps {
@@ -51,13 +52,13 @@ function StatCard({
   );
 }
 
-function CustomTooltip({ active, payload, label, effectiveRent }: any) {
+function CustomTooltip({ active, payload, label, effectiveRent, t }: any) {
   if (!active || !payload?.length) return null;
   const beRent = payload.find((p: any) => p.dataKey === "breakEvenRent")?.value as number | undefined;
   const gap = beRent !== undefined ? effectiveRent - beRent : undefined;
   return (
     <div className="bg-card border border-border rounded-xl shadow-xl p-3 text-xs space-y-1.5 min-w-[200px]">
-      <p className="font-bold text-foreground text-sm">{Number(label).toFixed(1)}% interest rate</p>
+      <p className="font-bold text-foreground text-sm">{Number(label).toFixed(1)}% {t("interestRate")}</p>
       {payload.map((entry: any) => (
         <div key={entry.name} className="flex justify-between gap-4">
           <span style={{ color: entry.color }} className="font-medium">{entry.name}</span>
@@ -66,7 +67,7 @@ function CustomTooltip({ active, payload, label, effectiveRent }: any) {
       ))}
       {gap !== undefined && (
         <div className={`flex justify-between gap-4 border-t border-border/50 pt-1 mt-1 font-semibold ${gap >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-          <span>Cash Flow</span>
+          <span>{t("cashFlow")}</span>
           <span className="font-mono">{formatCurrency(gap)}</span>
         </div>
       )}
@@ -75,6 +76,7 @@ function CustomTooltip({ active, payload, label, effectiveRent }: any) {
 }
 
 export default function BreakEvenCalculator({ data }: BreakEvenCalculatorProps) {
+  const { t } = useI18n();
   const [vacancy, setVacancy] = useState(0);
 
   const result: BreakEvenResult = useMemo(
@@ -90,7 +92,6 @@ export default function BreakEvenCalculator({ data }: BreakEvenCalculatorProps) 
     breakEvenRent: Math.round(r.breakEvenRent),
   }));
 
-  // Key snapshot rows — include current rate
   const snapshotRates = Array.from(
     new Set([...KEY_RATES, data.interestRate])
   ).sort((a, b) => a - b);
@@ -117,28 +118,28 @@ export default function BreakEvenCalculator({ data }: BreakEvenCalculatorProps) 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <StatCard
           icon={<TrendingDown className="h-3.5 w-3.5" />}
-          label="Break-Even Rent"
+          label={t("breakEvenRent")}
           value={formatCurrency(result.currentBreakEven)}
-          sub="total monthly expenses"
+          sub={t("totalMonthlyExpenses")}
           color="text-foreground"
         />
         <StatCard
           icon={isPositive ? <CheckCircle2 className="h-3.5 w-3.5" /> : <AlertTriangle className="h-3.5 w-3.5" />}
-          label={vacancy > 0 ? `Cash Flow (${vacancy}% vacancy)` : "Cash Flow"}
+          label={vacancy > 0 ? `${t("cashFlow")} (${vacancy}% ${t("vacancyStressTest")})` : t("cashFlow")}
           value={formatCurrency(result.currentCashFlow)}
-          sub={isPositive ? "above break-even" : "below break-even"}
+          sub={isPositive ? t("aboveBreakEven") : t("belowBreakEven")}
           color={isPositive ? "text-emerald-400" : "text-rose-400"}
         />
         <StatCard
           icon={<Percent className="h-3.5 w-3.5" />}
-          label="Max Affordable Rate"
-          value={maxRate !== null ? `${maxRate.toFixed(2)}%` : "All rates"}
+          label={t("maxAffordableRate")}
+          value={maxRate !== null ? `${maxRate.toFixed(2)}%` : t("allRatesPositive")}
           sub={
             maxRate !== null
               ? maxRate > data.interestRate
-                ? `${(maxRate - data.interestRate).toFixed(2)}% buffer above current`
-                : `Current rate exceeds limit`
-              : "cash flow positive at all rates"
+                ? `${(maxRate - data.interestRate).toFixed(2)}% ${t("bufferAboveCurrent")}`
+                : t("currentRateExceeds")
+              : t("allRatesPositive")
           }
           color={
             maxRate === null
@@ -155,7 +156,7 @@ export default function BreakEvenCalculator({ data }: BreakEvenCalculatorProps) 
         <div className="flex items-center gap-4 flex-wrap">
           <div className="flex-1 min-w-52 space-y-1">
             <div className="flex justify-between text-xs text-muted-foreground">
-              <span className="uppercase tracking-widest font-semibold">Vacancy Stress Test</span>
+              <span className="uppercase tracking-widest font-semibold">{t("vacancyStressTest")}</span>
               <span className="font-mono font-bold text-foreground">{vacancy}%</span>
             </div>
             <input
@@ -169,16 +170,16 @@ export default function BreakEvenCalculator({ data }: BreakEvenCalculatorProps) 
               className="w-full h-2 rounded-full accent-primary cursor-pointer"
             />
             <div className="flex justify-between text-[10px] text-muted-foreground">
-              <span>0% (fully occupied)</span>
-              <span>20% (1 in 5 months vacant)</span>
+              <span>{t("fullyOccupied")}</span>
+              <span>{t("oneInFiveVacant")}</span>
             </div>
           </div>
           <div className="text-xs space-y-0.5 text-right">
-            <p className="text-muted-foreground">Effective rent</p>
+            <p className="text-muted-foreground">{t("effectiveRent")}</p>
             <p className="font-mono font-bold text-amber-400 text-base">{formatCurrency(effectiveRent)}</p>
             {vacancy > 0 && (
               <p className="text-muted-foreground text-[10px]">
-                ({formatCurrency(data.rentalIncome - effectiveRent)}/mo lost to vacancy)
+                ({formatCurrency(data.rentalIncome - effectiveRent)}{t("lostToVacancy")})
               </p>
             )}
           </div>
@@ -187,7 +188,7 @@ export default function BreakEvenCalculator({ data }: BreakEvenCalculatorProps) 
         {/* Chart */}
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
-            Break-Even Rent vs. Interest Rate
+            {t("breakEvenRentVsRate")}
           </p>
           <div className="h-72 md:h-80" data-testid="breakeven-chart">
             <ResponsiveContainer width="100%" height="100%">
@@ -207,7 +208,7 @@ export default function BreakEvenCalculator({ data }: BreakEvenCalculatorProps) 
                   tickFormatter={(v) => `${v}%`}
                   tick={{ fontSize: 10, fill: "hsl(215,20%,55%)" }}
                   tickLine={false}
-                  label={{ value: "Interest Rate", position: "insideBottomRight", offset: -4, fill: "hsl(215,20%,40%)", fontSize: 10 }}
+                  label={{ value: t("interestRate"), position: "insideBottomRight", offset: -4, fill: "hsl(215,20%,40%)", fontSize: 10 }}
                 />
                 <YAxis
                   tickFormatter={(v) => `$${(v / 1000).toFixed(0)}K`}
@@ -216,10 +217,9 @@ export default function BreakEvenCalculator({ data }: BreakEvenCalculatorProps) 
                   axisLine={false}
                   width={52}
                 />
-                <Tooltip content={<CustomTooltip effectiveRent={effectiveRent} />} />
+                <Tooltip content={<CustomTooltip effectiveRent={effectiveRent} t={t} />} />
                 <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
 
-                {/* Safe zone (left of max affordable rate) */}
                 {safeZoneEnd !== null && safeZoneEnd > 0.5 && (
                   <ReferenceArea
                     x1={0.5}
@@ -230,7 +230,6 @@ export default function BreakEvenCalculator({ data }: BreakEvenCalculatorProps) 
                   />
                 )}
 
-                {/* Danger zone (right of max affordable rate) */}
                 {safeZoneEnd !== null && safeZoneEnd < 15 && (
                   <ReferenceArea
                     x1={safeZoneEnd}
@@ -244,49 +243,45 @@ export default function BreakEvenCalculator({ data }: BreakEvenCalculatorProps) 
                 <Area
                   type="monotone"
                   dataKey="breakEvenRent"
-                  name="Break-Even Rent"
+                  name={t("breakEvenRentLabel")}
                   stroke="hsl(210,70%,60%)"
                   fill="url(#beGrad)"
                   strokeWidth={2}
                   dot={false}
                 />
 
-                {/* Current rent */}
                 <ReferenceLine
                   y={data.rentalIncome}
                   stroke="hsl(168,70%,50%)"
                   strokeWidth={2}
                   strokeDasharray="5 3"
-                  label={{ value: `Rent ${formatCurrency(data.rentalIncome)}`, position: "right", fill: "hsl(168,70%,50%)", fontSize: 9 }}
+                  label={{ value: `${t("rent")} ${formatCurrency(data.rentalIncome)}`, position: "right", fill: "hsl(168,70%,50%)", fontSize: 9 }}
                 />
 
-                {/* Vacancy-adjusted rent */}
                 {vacancy > 0 && (
                   <ReferenceLine
                     y={effectiveRent}
                     stroke="hsl(45,90%,55%)"
                     strokeWidth={1.5}
                     strokeDasharray="4 3"
-                    label={{ value: `Net ${formatCurrency(effectiveRent)}`, position: "right", fill: "hsl(45,90%,55%)", fontSize: 9 }}
+                    label={{ value: `${t("net")} ${formatCurrency(effectiveRent)}`, position: "right", fill: "hsl(45,90%,55%)", fontSize: 9 }}
                   />
                 )}
 
-                {/* Current interest rate */}
                 <ReferenceLine
                   x={data.interestRate}
                   stroke="hsl(215,20%,65%)"
                   strokeWidth={1.5}
                   strokeDasharray="3 3"
-                  label={{ value: `Current ${data.interestRate}%`, position: "top", fill: "hsl(215,20%,65%)", fontSize: 9 }}
+                  label={{ value: `${t("current")} ${data.interestRate}%`, position: "top", fill: "hsl(215,20%,65%)", fontSize: 9 }}
                 />
 
-                {/* Max affordable rate */}
                 {maxRate !== null && (
                   <ReferenceLine
                     x={parseFloat(maxRate.toFixed(2))}
                     stroke="hsl(168,70%,50%)"
                     strokeWidth={2}
-                    label={{ value: `Max ${maxRate.toFixed(1)}%`, position: "insideTopLeft", fill: "hsl(168,70%,50%)", fontSize: 9 }}
+                    label={{ value: `${t("max")} ${maxRate.toFixed(1)}%`, position: "insideTopLeft", fill: "hsl(168,70%,50%)", fontSize: 9 }}
                   />
                 )}
               </ComposedChart>
@@ -297,13 +292,13 @@ export default function BreakEvenCalculator({ data }: BreakEvenCalculatorProps) 
         {/* Snapshot table */}
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">
-            Rate Scenarios
+            {t("rateScenarios")}
           </p>
           <div className="overflow-x-auto rounded-xl border border-border/40">
             <table className="w-full text-xs" style={{ minWidth: 480 }}>
               <thead>
                 <tr className="border-b border-border/50 bg-card/60">
-                  {["Rate", "Mortgage Payment", "Break-Even Rent", `Cash Flow${vacancy > 0 ? ` (${vacancy}% vac.)` : ""}`, "Status"].map((h) => (
+                  {[t("rate"), t("mortgagePayment"), t("breakEvenRentLabel"), `${t("cashFlow")}${vacancy > 0 ? ` (${vacancy}% ${t("vacancyStressTest")})` : ""}`, t("status")].map((h) => (
                     <th key={h} className="px-3 py-2 text-left text-[10px] uppercase tracking-widest text-muted-foreground font-medium whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -320,7 +315,7 @@ export default function BreakEvenCalculator({ data }: BreakEvenCalculatorProps) 
                     >
                       <td className="px-3 py-2 font-mono font-bold text-foreground">
                         {row.rate.toFixed(1)}%
-                        {isCurrent && <span className="ml-1.5 text-[9px] text-primary bg-primary/15 px-1.5 py-0.5 rounded-full uppercase tracking-wide">current</span>}
+                        {isCurrent && <span className="ml-1.5 text-[9px] text-primary bg-primary/15 px-1.5 py-0.5 rounded-full uppercase tracking-wide">{t("current")}</span>}
                       </td>
                       <td className="px-3 py-2 font-mono text-muted-foreground">{formatCurrency(row.mortgagePayment)}</td>
                       <td className="px-3 py-2 font-mono text-blue-400">{formatCurrency(row.breakEvenRent)}</td>
@@ -329,7 +324,7 @@ export default function BreakEvenCalculator({ data }: BreakEvenCalculatorProps) 
                       </td>
                       <td className="px-3 py-2">
                         <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${positive ? "bg-emerald-500/15 text-emerald-400" : "bg-rose-500/15 text-rose-400"}`}>
-                          {positive ? "Profitable" : "Negative"}
+                          {positive ? t("profitable") : t("negative")}
                         </span>
                       </td>
                     </tr>

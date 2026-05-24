@@ -5,6 +5,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/AuthPage";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { I18nProvider, useI18n } from "@/lib/i18n";
+import LanguageSelector from "@/components/LanguageSelector";
 import { useState, useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import PropertyForm from "@/components/PropertyForm";
@@ -28,6 +30,7 @@ const queryClient = new QueryClient();
 
 function UserNav() {
   const { user, signOut, isDemoMode, exitDemoMode } = useAuth();
+  const { t } = useI18n();
   const [signingOut, setSigningOut] = useState(false);
 
   // Demo mode — show sign-in / create account buttons
@@ -39,14 +42,14 @@ function UserNav() {
           className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border/50 bg-card/40 text-xs text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all"
         >
           <LogIn className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Sign in</span>
+          <span className="hidden sm:inline">{t("signIn")}</span>
         </button>
         <button
           onClick={exitDemoMode}
           className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-primary/50 bg-primary/10 text-xs text-primary hover:bg-primary/20 transition-all font-semibold"
         >
           <UserPlus className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Create account</span>
+          <span className="hidden sm:inline">{t("createAccount")}</span>
         </button>
       </div>
     );
@@ -69,11 +72,11 @@ function UserNav() {
         onClick={handleSignOut}
         disabled={signingOut}
         data-testid="btn-signout"
-        title="Sign out"
+        title={t("signOut")}
         className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border/50 bg-card/40 text-xs text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all disabled:opacity-50"
       >
         {signingOut ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LogOut className="h-3.5 w-3.5" />}
-        <span className="hidden sm:inline">Sign out</span>
+        <span className="hidden sm:inline">{t("signOut")}</span>
       </button>
     </div>
   );
@@ -82,12 +85,13 @@ function UserNav() {
 // ─── SaveStatusIndicator ──────────────────────────────────────────────────────
 
 function SaveStatusIndicator({ status }: { status: "idle" | "saving" | "saved" | "error" }) {
+  const { t } = useI18n();
   if (status === "idle") return null;
   return (
     <div className="flex items-center gap-1.5 text-[10px] font-mono px-2">
-      {status === "saving" && <><Cloud className="h-3 w-3 text-muted-foreground animate-pulse" /><span className="text-muted-foreground">Saving…</span></>}
-      {status === "saved"  && <><Check className="h-3 w-3 text-emerald-400" /><span className="text-emerald-400">Saved</span></>}
-      {status === "error"  && <><CloudOff className="h-3 w-3 text-rose-400" /><span className="text-rose-400">Save failed</span></>}
+      {status === "saving" && <><Cloud className="h-3 w-3 text-muted-foreground animate-pulse" /><span className="text-muted-foreground">{t("saving")}</span></>}
+      {status === "saved"  && <><Check className="h-3 w-3 text-emerald-400" /><span className="text-emerald-400">{t("saved")}</span></>}
+      {status === "error"  && <><CloudOff className="h-3 w-3 text-rose-400" /><span className="text-rose-400">{t("saveFailed")}</span></>}
     </div>
   );
 }
@@ -96,6 +100,7 @@ function SaveStatusIndicator({ status }: { status: "idle" | "saving" | "saved" |
 
 function DemoBanner() {
   const { exitDemoMode } = useAuth();
+  const { t } = useI18n();
   const [dismissed, setDismissed] = useState(false);
   if (dismissed) return null;
   return (
@@ -107,21 +112,21 @@ function DemoBanner() {
       <div className="flex items-center gap-2.5 flex-1 min-w-0">
         <Zap className="h-4 w-4 text-primary shrink-0" />
         <p className="text-xs text-foreground/80">
-          <span className="font-semibold text-primary">Demo mode</span>
-          {" — "}sample data loaded, edits are local only, and compare is limited to 2 properties.{" "}
+          <span className="font-semibold text-primary">{t("demoMode")}</span>
+          {" — "}{t("demoBanner")}{" "}
           <button
             onClick={exitDemoMode}
             className="text-primary underline underline-offset-2 hover:opacity-80 font-semibold transition-opacity"
           >
-            Create a free account
+            {t("createAccount")}
           </button>
-          {" "}to save your portfolio and unlock the full version.
+          {" "}{t("demoBannerCta")}
         </p>
       </div>
       <button
         onClick={() => setDismissed(true)}
         className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
-        aria-label="Dismiss demo banner"
+        aria-label={t("dismissDemoBanner")}
       >
         <X className="h-4 w-4" />
       </button>
@@ -132,21 +137,18 @@ function DemoBanner() {
 // ─── SetupBanner ──────────────────────────────────────────────────────────────
 
 function SetupBanner() {
+  const { t } = useI18n();
   return (
     <div className="m-6 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-6 space-y-4">
       <div className="flex items-center gap-2">
         <AlertCircle className="h-5 w-5 text-amber-400" />
-        <p className="font-semibold text-amber-300">One-time database setup required</p>
+        <p className="font-semibold text-amber-300">{t("setupRequired")}</p>
       </div>
       <p className="text-sm text-muted-foreground">
-        To persist your portfolio across sessions, run the following SQL once in your{" "}
-        <a href="https://supabase.com/dashboard" target="_blank" rel="noreferrer" className="text-primary underline underline-offset-2">
-          Supabase dashboard
-        </a>
-        {" "}→ SQL Editor → New query, then refresh this page.
+        {t("setupDescription")}
       </p>
       <p className="text-xs text-muted-foreground">
-        The full SQL is in <code className="text-primary">artifacts/property-ai/supabase_setup.sql</code>
+        {t("sqlFileLocation")}{" "}<code className="text-primary">artifacts/property-ai/supabase_setup.sql</code>
       </p>
     </div>
   );
@@ -167,6 +169,7 @@ function ExportButton({
   demo?: boolean;
   "data-testid"?: string;
 }) {
+  const { t } = useI18n();
   const [showDemoNote, setShowDemoNote] = useState(false);
 
   function handleClick() {
@@ -196,7 +199,7 @@ function ExportButton({
             exit={{ opacity: 0 }}
             className="absolute right-0 top-full mt-2 z-50 w-64 rounded-xl border border-primary/30 bg-card/95 backdrop-blur-sm p-3 shadow-xl text-xs text-muted-foreground"
           >
-            <p><span className="text-primary font-semibold">Demo export</span> — full branded PDFs with your logo and custom header are available on a full account.</p>
+            <p><span className="text-primary font-semibold">Demo export</span> — {t("demoExportNote")}</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -208,6 +211,7 @@ function ExportButton({
 
 function Home({ isDemoMode }: { isDemoMode: boolean }) {
   const { exitDemoMode } = useAuth();
+  const { t } = useI18n();
   const [mode, setMode] = useState<"analyze" | "compare">("analyze");
   const [showAmortization, setShowAmortization] = useState(true);
   const [showBreakEven, setShowBreakEven] = useState(true);
@@ -279,7 +283,7 @@ function Home({ isDemoMode }: { isDemoMode: boolean }) {
 
   return (
     <div className="min-h-[100dvh] w-full bg-background text-foreground selection:bg-primary/30 font-sans">
-      {/* ── Header ── */}
+      {/* ─ Header ─ */}
       <header className="border-b border-border/50 bg-card/30 backdrop-blur-md sticky top-0 z-50">
         <div className="container mx-auto max-w-7xl px-4 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-primary">
@@ -300,7 +304,7 @@ function Home({ isDemoMode }: { isDemoMode: boolean }) {
               }`}
             >
               <SlidersHorizontal className="h-3.5 w-3.5" />
-              Analyze
+              {t("analyze")}
             </button>
             <button
               onClick={() => { flushPending(); setMode("compare"); }}
@@ -312,21 +316,22 @@ function Home({ isDemoMode }: { isDemoMode: boolean }) {
               }`}
             >
               <BarChart2 className="h-3.5 w-3.5" />
-              Compare
+              {t("compare")}
             </button>
           </div>
 
           <div className="flex items-center gap-2">
             {!isDemoMode && <SaveStatusIndicator status={saveStatus} />}
+            <LanguageSelector />
             <UserNav />
           </div>
         </div>
       </header>
 
-      {/* ── Demo banner ── */}
+      {/* ─ Demo banner ─ */}
       {isDemoMode && <DemoBanner />}
 
-      {/* ── Loading ── */}
+      {/* ─ Loading ─ */}
       {loading && (
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="flex flex-col items-center gap-3 text-muted-foreground">
@@ -336,10 +341,10 @@ function Home({ isDemoMode }: { isDemoMode: boolean }) {
         </div>
       )}
 
-      {/* ── Setup required ── */}
+      {/* ─ Setup required ─ */}
       {!loading && dbError === "setup_required" && <SetupBanner />}
 
-      {/* ── Generic DB error ── */}
+      {/* ─ Generic DB error ─ */}
       {!loading && dbError && dbError !== "setup_required" && (
         <div className="m-6 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-5 flex items-center gap-3">
           <AlertCircle className="h-5 w-5 text-rose-400 shrink-0" />
@@ -347,7 +352,7 @@ function Home({ isDemoMode }: { isDemoMode: boolean }) {
         </div>
       )}
 
-      {/* ── Main content ── */}
+      {/* ─ Main content ─ */}
       {loaded && !dbError && (
         <main className="container mx-auto max-w-7xl px-4 py-8 md:py-12">
           {mode === "analyze" ? (
@@ -370,12 +375,12 @@ function Home({ isDemoMode }: { isDemoMode: boolean }) {
                     data-testid={`tab-analyze-${entry.id}`}
                   >
                     <Radar className="h-3 w-3" />
-                    <span className="max-w-[120px] truncate">{entry.name || "Untitled"}</span>
+                    <span className="max-w-[120px] truncate">{entry.name || t("untitled")}</span>
                     {analyzeEntries.length > 1 && !isDemoMode && (
                       <span
                         onClick={(e) => { e.stopPropagation(); void handleDeleteAnalyze(entry.id); }}
                         className="ml-1 text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
-                        title="Delete property"
+                        title={t("deleteProperty")}
                       >
                         <X className="h-3 w-3" />
                       </span>
@@ -388,10 +393,10 @@ function Home({ isDemoMode }: { isDemoMode: boolean }) {
                     onClick={exitDemoMode}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-dashed border-border/60 text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all"
                     data-testid="tab-analyze-locked"
-                    title="Create a free account to save properties"
+                    title={t("createAccountToSave")}
                   >
                     <Lock className="h-3 w-3" />
-                    Slot 2
+                    {t("slotLocked")}
                   </button>
                 ) : (
                   analyzeEntries.length < 3 && (
@@ -401,14 +406,14 @@ function Home({ isDemoMode }: { isDemoMode: boolean }) {
                       data-testid="button-add-analyze-property"
                     >
                       <Plus className="h-3 w-3" />
-                      Add Property
+                      {t("addProperty")}
                     </button>
                   )
                 )}
 
                 {!isDemoMode && analyzeEntries.length >= 3 && (
                   <span className="text-[10px] text-muted-foreground font-medium">
-                    Max 3 saved properties reached
+                    {t("maxPropertiesReached")}
                   </span>
                 )}
               </div>
@@ -418,10 +423,10 @@ function Home({ isDemoMode }: { isDemoMode: boolean }) {
                   <div className="flex items-start justify-between gap-4 flex-wrap">
                     <div className="flex-1 min-w-0">
                       <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
-                        Asset Evaluation
+                        {t("assetEvaluation")}
                       </h1>
                       <p className="text-muted-foreground mt-1">
-                        Enter your property parameters to generate an instant strategic analysis.
+                        {t("enterPropertyParameters")}
                       </p>
                     </div>
                   </div>
@@ -429,7 +434,7 @@ function Home({ isDemoMode }: { isDemoMode: boolean }) {
                   <div className="flex items-center gap-3">
                     <div className="flex-1 min-w-0">
                       <label className="text-[10px] text-muted-foreground uppercase tracking-widest block mb-1">
-                        Property Name
+                        {t("propertyName")}
                       </label>
                       <input
                         value={singleName}
@@ -444,7 +449,7 @@ function Home({ isDemoMode }: { isDemoMode: boolean }) {
                       <ExportButton
                         onClick={handleExportAnalyze}
                         loading={exportingAnalyze}
-                        label="Export PDF"
+                        label={t("exportPdf")}
                         demo={isDemoMode}
                         data-testid="button-export-analyze"
                       />
@@ -469,7 +474,7 @@ function Home({ isDemoMode }: { isDemoMode: boolean }) {
                 >
                   <div className="flex-1 h-px bg-border/50" />
                   <span className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-border/60 bg-card/40 text-xs font-semibold uppercase tracking-widest text-muted-foreground group-hover:text-foreground group-hover:border-primary/40 transition-all">
-                    Amortization Schedule
+                    {t("amortizationSchedule")}
                     {showAmortization ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                   </span>
                   <div className="flex-1 h-px bg-border/50" />
@@ -497,7 +502,7 @@ function Home({ isDemoMode }: { isDemoMode: boolean }) {
                 >
                   <div className="flex-1 h-px bg-border/50" />
                   <span className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-border/60 bg-card/40 text-xs font-semibold uppercase tracking-widest text-muted-foreground group-hover:text-foreground group-hover:border-primary/40 transition-all">
-                    Break-Even Rent Calculator
+                    {t("breakEvenRentCalculator")}
                     {showBreakEven ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                   </span>
                   <div className="flex-1 h-px bg-border/50" />
@@ -527,12 +532,12 @@ function Home({ isDemoMode }: { isDemoMode: boolean }) {
               <div className="flex items-end justify-between gap-4 flex-wrap">
                 <div>
                   <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
-                    Portfolio Comparison
+                    {t("portfolioComparison")}
                   </h1>
                   <p className="text-muted-foreground mt-2">
                     {isDemoMode
-                      ? "Compare 2 sample properties. Sign up to add up to 4 and save your portfolio."
-                      : "Evaluate up to 4 properties side by side. Best values are highlighted automatically."}
+                      ? t("compareDemoDescription")
+                      : t("compareDescription")}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -543,24 +548,24 @@ function Home({ isDemoMode }: { isDemoMode: boolean }) {
                       className="flex items-center gap-2 px-4 py-2 rounded-lg border border-primary/50 text-primary text-sm font-semibold hover:bg-primary/10 transition-colors"
                     >
                       <Plus className="h-4 w-4" />
-                      Add Property
+                      {t("addProperty")}
                     </button>
                   )}
                   {isDemoMode && properties.length >= maxProperties && (
                     <button
                       onClick={exitDemoMode}
                       className="flex items-center gap-2 px-4 py-2 rounded-lg border border-primary/30 text-primary/70 text-xs font-semibold hover:bg-primary/10 transition-colors"
-                      title="Create a free account to compare up to 4 properties"
+                      title={t("createAccountToSave")}
                     >
                       <Plus className="h-4 w-4" />
-                      Add Property
-                      <span className="ml-1 text-[10px] bg-primary/15 px-1.5 py-0.5 rounded-full">Full version</span>
+                      {t("addProperty")}
+                      <span className="ml-1 text-[10px] bg-primary/15 px-1.5 py-0.5 rounded-full">{t("fullVersion")}</span>
                     </button>
                   )}
                   <ExportButton
                     onClick={handleExportCompare}
                     loading={exportingCompare}
-                    label="Export PDF"
+                    label={t("exportPdf")}
                     demo={isDemoMode}
                     data-testid="button-export-compare"
                   />
@@ -593,7 +598,7 @@ function Home({ isDemoMode }: { isDemoMode: boolean }) {
   );
 }
 
-// ─── AuthGate ─────────────────────────────────────────────────────────────────
+// ─── AuthGate ──────────────────────────────────────────────────────────────
 
 function AuthGate() {
   const { session, loading, isDemoMode } = useAuth();
@@ -619,18 +624,20 @@ function AuthGate() {
   );
 }
 
-// ─── App ──────────────────────────────────────────────────────────────────────
+// ─── App ──────────────────────────────────────────────────────────────────────────────────
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <TooltipProvider>
-          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <AuthGate />
-          </WouterRouter>
-          <Toaster />
-        </TooltipProvider>
+        <I18nProvider>
+          <TooltipProvider>
+            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+              <AuthGate />
+            </WouterRouter>
+            <Toaster />
+          </TooltipProvider>
+        </I18nProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

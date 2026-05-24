@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { propertySchema, PropertyData } from "@/lib/calculations";
+import { useI18n } from "@/lib/i18n";
 import {
   Form,
   FormControl,
@@ -19,6 +20,7 @@ interface PropertyFormProps {
 }
 
 export default function PropertyForm({ data, onChange }: PropertyFormProps) {
+  const { t } = useI18n();
   const form = useForm<PropertyData>({
     resolver: zodResolver(propertySchema),
     defaultValues: data,
@@ -44,7 +46,7 @@ export default function PropertyForm({ data, onChange }: PropertyFormProps) {
         <div className="space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-border text-primary">
             <Building2 className="h-5 w-5" />
-            <h3 className="text-lg font-semibold tracking-tight">Valuation</h3>
+            <h3 className="text-lg font-semibold tracking-tight">{t("valuation")}</h3>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField
@@ -52,7 +54,7 @@ export default function PropertyForm({ data, onChange }: PropertyFormProps) {
               name="currentValue"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">Current Value</FormLabel>
+                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">{t("currentValue")}</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -68,7 +70,7 @@ export default function PropertyForm({ data, onChange }: PropertyFormProps) {
               name="purchasePrice"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">Original Price</FormLabel>
+                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">{t("originalPrice")}</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -84,7 +86,7 @@ export default function PropertyForm({ data, onChange }: PropertyFormProps) {
               name="mortgageBalance"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">Mortgage Balance</FormLabel>
+                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">{t("mortgageBalance")}</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -100,7 +102,7 @@ export default function PropertyForm({ data, onChange }: PropertyFormProps) {
               name="interestRate"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">Interest Rate</FormLabel>
+                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">{t("interestRate")}</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <Percent className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -117,7 +119,7 @@ export default function PropertyForm({ data, onChange }: PropertyFormProps) {
         <div className="space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-border text-primary mt-8">
             <Wallet className="h-5 w-5" />
-            <h3 className="text-lg font-semibold tracking-tight">Income &amp; Expenses</h3>
+            <h3 className="text-lg font-semibold tracking-tight">{t("incomeAndExpenses")}</h3>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField
@@ -125,7 +127,7 @@ export default function PropertyForm({ data, onChange }: PropertyFormProps) {
               name="rentalIncome"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">Monthly Rent</FormLabel>
+                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">{t("monthlyRent")}</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -141,7 +143,7 @@ export default function PropertyForm({ data, onChange }: PropertyFormProps) {
               name="mortgagePayment"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">Monthly Principal &amp; Interest</FormLabel>
+                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">{t("monthlyPrincipalInterest")}</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -157,7 +159,7 @@ export default function PropertyForm({ data, onChange }: PropertyFormProps) {
               name="propertyTax"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">Monthly Property Tax</FormLabel>
+                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">{t("monthlyPropertyTax")}</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -173,7 +175,7 @@ export default function PropertyForm({ data, onChange }: PropertyFormProps) {
               name="insurance"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">Monthly Insurance</FormLabel>
+                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">{t("monthlyInsurance")}</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -189,7 +191,7 @@ export default function PropertyForm({ data, onChange }: PropertyFormProps) {
               name="maintenance"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">Monthly Maintenance</FormLabel>
+                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">{t("monthlyMaintenance")}</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -205,7 +207,7 @@ export default function PropertyForm({ data, onChange }: PropertyFormProps) {
               name="hoa"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">Monthly HOA / Other</FormLabel>
+                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">{t("monthlyHoaOther")}</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -222,7 +224,7 @@ export default function PropertyForm({ data, onChange }: PropertyFormProps) {
         <div className="space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-border text-primary mt-8">
             <TrendingUp className="h-5 w-5" />
-            <h3 className="text-lg font-semibold tracking-tight">Assumptions</h3>
+            <h3 className="text-lg font-semibold tracking-tight">{t("assumptions")}</h3>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField
@@ -230,7 +232,7 @@ export default function PropertyForm({ data, onChange }: PropertyFormProps) {
               name="sellingCostsPercent"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">Selling Costs %</FormLabel>
+                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">{t("sellingCostsPercent")}</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <Percent className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -246,7 +248,7 @@ export default function PropertyForm({ data, onChange }: PropertyFormProps) {
               name="appreciationRatePercent"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">Appreciation %</FormLabel>
+                  <FormLabel className="text-xs text-muted-foreground uppercase tracking-wider">{t("appreciationRatePercent")}</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <Percent className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
