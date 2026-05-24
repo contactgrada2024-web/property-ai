@@ -66,18 +66,26 @@ export function calculatePropertyMetrics(data: PropertyData): CalculationResults
   let strategySignal: "Hold" | "Refinance" | "Optimize" | "Sell";
   let strategyDescription = "";
 
-  if (propertyHealthScore >= 1.5 && monthlyCashFlow > 0) {
-    strategySignal = "Hold";
-    strategyDescription = "Strong performing asset. Continue collecting cash flow and riding appreciation.";
-  } else if (propertyHealthScore >= 1.0 && equityStrengthPercent > 40) {
-    strategySignal = "Refinance";
-    strategyDescription = "High trapped equity. Consider cash-out refi or line of credit to redeploy capital.";
-  } else if (propertyHealthScore >= 0.5 && monthlyCashFlow < 0) {
-    strategySignal = "Optimize";
-    strategyDescription = "Asset is underperforming. Raise rents or cut expenses to return to positive cash flow.";
+  if (monthlyCashFlow > 0) {
+    if (propertyHealthScore >= 1.5) {
+      strategySignal = "Hold";
+      strategyDescription = "Strong performing asset. Continue collecting cash flow and riding appreciation.";
+    } else {
+      strategySignal = "Optimize";
+      strategyDescription = "Asset is underperforming. Raise rents or cut expenses to return to positive cash flow.";
+    }
   } else {
-    strategySignal = "Sell";
-    strategyDescription = "Dead equity or severe negative cash flow. Capital is better deployed elsewhere.";
+    // monthlyCashFlow <= 0
+    if (equityStrengthPercent > 40) {
+      strategySignal = "Refinance";
+      strategyDescription = "High trapped equity. Consider cash-out refi or line of credit to redeploy capital.";
+    } else if (estimatedCashIfSoldToday < 0 || equityStrengthPercent < 2) {
+      strategySignal = "Sell";
+      strategyDescription = "Dead equity or severe negative cash flow. Capital is better deployed elsewhere.";
+    } else {
+      strategySignal = "Optimize";
+      strategyDescription = "Asset is underperforming. Raise rents or cut expenses to return to positive cash flow.";
+    }
   }
 
   return {
