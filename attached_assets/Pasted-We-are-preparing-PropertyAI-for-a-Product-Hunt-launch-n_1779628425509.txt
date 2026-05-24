@@ -1,0 +1,149 @@
+We are preparing PropertyAI for a Product Hunt launch next Tuesday.
+
+The app is now working correctly in the Vercel production version:
+https://project-nxloe.vercel.app
+
+Before making any code changes, please confirm whether adding a language selector is low-risk.
+
+Goal:
+Add bilingual support: English by default, Spanish optional.
+
+Very important:
+Do NOT break the current working functionality:
+- Sign in
+- Create account
+- Google login
+- Supabase persistence
+- Saved Analyze properties
+- Compare mode
+- Copy Analyze property into Compare
+- PDF export
+- Mobile layout
+- Vercel deployment
+
+Current desired behavior:
+1. English must remain the default language.
+2. Add a small language selector in the top navigation, preferably near the user email / Sign Out area:
+   EN | ES
+   or
+   🇺🇸 EN | 🇪🇸 ES
+3. When the user selects Spanish, all visible UI text should switch to Spanish.
+4. The user’s selected language should persist after refresh/login if possible.
+5. If persistence is risky, localStorage is acceptable for now.
+6. Do not translate user-entered property names or numeric values.
+7. Do not change the app logic, calculations, database schema, authentication, or saved property system unless absolutely necessary.
+
+Text that should be translated includes:
+- Analyze
+- Compare
+- Asset Evaluation
+- Enter your property parameters to generate an instant strategic analysis.
+- Property Name
+- Valuation
+- Current Value
+- Original Price
+- Mortgage Balance
+- Interest Rate
+- Income & Expenses
+- Monthly Rent
+- Monthly Principal & Interest
+- Monthly Property Tax
+- Monthly Insurance
+- Monthly Maintenance
+- Monthly HOA / Other
+- Assumptions
+- Selling Costs %
+- Appreciation %
+- Terminal Output
+- Recommended Action
+- Sell
+- Hold
+- Optimize
+- Monthly Cash Flow
+- Available Equity
+- Cash If Sold Today
+- Capital Efficiency
+- Health Score
+- Amortization Schedule
+- Payoff Timeline
+- Total Interest
+- First Payment Split
+- Equity at Payoff
+- Break-Even Rent Calculator
+- Vacancy Stress Test
+- Rate Scenarios
+- Portfolio Comparison
+- Evaluate up to 4 properties side by side. Best values are highlighted automatically.
+- Export PDF
+- Copy values from Analyze property
+- Max 3 saved properties reached
+- Strategy Signal
+- Best
+- Demo mode messages, if applicable
+
+Recommended Spanish translations:
+Analyze = Analizar
+Compare = Comparar
+Asset Evaluation = Evaluación del activo
+Enter your property parameters to generate an instant strategic analysis. = Introduce los datos de la propiedad para generar un análisis estratégico instantáneo.
+Property Name = Nombre de la propiedad
+Valuation = Valoración
+Current Value = Valor actual
+Original Price / Purchase Price = Precio de compra
+Mortgage Balance = Saldo hipotecario
+Interest Rate = Tipo de interés
+Income & Expenses = Ingresos y gastos
+Monthly Rent = Renta mensual
+Monthly Principal & Interest = Principal e intereses mensuales
+Monthly Property Tax = Impuesto mensual sobre la propiedad
+Monthly Insurance = Seguro mensual
+Monthly Maintenance = Mantenimiento mensual
+Monthly HOA / Other = HOA / otros mensual
+Assumptions = Supuestos
+Selling Costs % = Costes de venta %
+Appreciation % = Revalorización %
+Terminal Output = Resultado del análisis
+Recommended Action = Acción recomendada
+Sell = Vender
+Hold = Mantener
+Optimize = Optimizar
+Monthly Cash Flow = Flujo de caja mensual
+Available Equity = Equity disponible
+Cash If Sold Today = Efectivo si se vende hoy
+Capital Efficiency = Eficiencia del capital
+Health Score = Puntuación del activo
+Amortization Schedule = Tabla de amortización
+Payoff Timeline = Plazo de amortización
+Total Interest = Intereses totales
+First Payment Split = Desglose del primer pago
+Equity at Payoff = Equity al finalizar el préstamo
+Break-Even Rent Calculator = Calculadora de renta de equilibrio
+Vacancy Stress Test = Prueba de vacancia
+Rate Scenarios = Escenarios de tipos
+Portfolio Comparison = Comparación de cartera
+Evaluate up to 4 properties side by side. Best values are highlighted automatically. = Compara hasta 4 propiedades lado a lado. Los mejores valores se resaltan automáticamente.
+Export PDF = Exportar PDF
+Copy values from Analyze property = Copiar valores desde la propiedad analizada
+Max 3 saved properties reached = Máximo de 3 propiedades guardadas alcanzado
+Strategy Signal = Señal estratégica
+Best = Mejor
+
+Implementation preference:
+- Please implement this cleanly using a simple translation dictionary/i18n object.
+- Avoid hardcoding duplicate UI blocks.
+- Keep English as fallback if a key is missing.
+- Keep the change minimal and safe.
+- After implementation, test:
+  1. English default loads correctly.
+  2. Switching to Spanish changes UI text.
+  3. Refresh keeps selected language.
+  4. Analyze still saves and loads properties.
+  5. Compare still works.
+  6. PDF export still works.
+  7. Mobile layout still looks acceptable.
+
+Before implementing, please tell me:
+A) Is this a low-risk change?
+B) Which files will you modify?
+C) Will this affect Supabase or authentication?
+D) Estimated time and risk level.
