@@ -15,10 +15,24 @@ export interface PortfolioEntry {
 
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
 
-const DEFAULT_NAMES = ["Property A", "Property B", "Property C", "Property D"];
+const DEFAULT_NAMES_ES = ["Propiedad A", "Propiedad B", "Propiedad C", "Propiedad D"];
+const DEFAULT_NAMES_EN = ["Property A", "Property B", "Property C", "Property D"];
+
+function getDefaultNames(lang: string) {
+  return lang === "es" ? DEFAULT_NAMES_ES : DEFAULT_NAMES_EN;
+}
+
+function getDefaultPropertyName(index: number, lang: string) {
+  const names = getDefaultNames(lang);
+  return names[index] ?? (lang === "es" ? `Propiedad ${index + 1}` : `Property ${index + 1}`);
+}
+
+function getMyPropertyName(lang: string) {
+  return lang === "es" ? "Mi Propiedad" : "My Property";
+}
 const MAX_ANALYZE_SLOTS = 3;
 
-export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
+export function usePortfolio({ demo = false, lang = "en" }: { demo?: boolean; lang?: string } = {}) {
   const [loading, setLoading] = useState(!demo);
   const [loaded, setLoaded] = useState(demo);
   const [dbError, setDbError] = useState<string | null>(null);
@@ -53,7 +67,7 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
   }
 
   // Refs for the active property values (avoid stale closures in setters)
-  const analyzeNameRef = useRef<string>(demo ? DEMO_ANALYZE_NAME : "My Property");
+  const analyzeNameRef = useRef<string>(demo ? DEMO_ANALYZE_NAME : getMyPropertyName(lang));
   const analyzeDataRef = useRef<PropertyData>(
     demo ? { ...DEMO_ANALYZE_DATA } : { ...defaultPropertyData }
   );
@@ -191,7 +205,7 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
           setAnalyzeDataState({ ...first.data });
         } else {
           setActiveAnalyzeId(null);
-          setAnalyzeNameState("My Property");
+          setAnalyzeNameState(getMyPropertyName(lang));
           setAnalyzeDataState({ ...defaultPropertyData });
         }
 
@@ -316,7 +330,7 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
     const current = analyzeEntriesRef.current;
     if (current.length >= MAX_ANALYZE_SLOTS) return;
 
-    const newName = `Property ${current.length + 1}`;
+    const newName = getDefaultPropertyName(current.length, lang);
     const newData = { ...defaultPropertyData };
 
     setSaveStatus("saving");
@@ -360,7 +374,7 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
           setAnalyzeDataState({ ...first.data });
         } else {
           setActiveAnalyzeId(null);
-          setAnalyzeNameState("My Property");
+          setAnalyzeNameState(getMyPropertyName(lang));
           setAnalyzeDataState({ ...defaultPropertyData });
         }
       }
@@ -390,7 +404,7 @@ export function usePortfolio({ demo = false }: { demo?: boolean } = {}) {
     const idx = current.length;
     try {
       const row = await dbCreate({
-        name: DEFAULT_NAMES[idx] ?? `Property ${idx + 1}`,
+        name: getDefaultPropertyName(idx, lang),
         mode: "compare",
         data: { ...defaultPropertyData },
         sort_order: idx,

@@ -1,18 +1,18 @@
 import { z } from "zod";
 
 export const propertySchema = z.object({
-  currentValue: z.coerce.number().min(0, "Must be >= 0"),
-  purchasePrice: z.coerce.number().min(0, "Must be >= 0"),
-  mortgageBalance: z.coerce.number().min(0, "Must be >= 0"),
-  interestRate: z.coerce.number().min(0, "Must be >= 0").max(30, "Max 30%"),
-  rentalIncome: z.coerce.number().min(0, "Must be >= 0"),
-  mortgagePayment: z.coerce.number().min(0, "Must be >= 0"),
-  propertyTax: z.coerce.number().min(0, "Must be >= 0"),
-  insurance: z.coerce.number().min(0, "Must be >= 0"),
-  maintenance: z.coerce.number().min(0, "Must be >= 0"),
-  hoa: z.coerce.number().min(0, "Must be >= 0"),
-  sellingCostsPercent: z.coerce.number().min(0).max(100, "Between 0 and 100"),
-  appreciationRatePercent: z.coerce.number().min(0).max(100, "Between 0 and 100"),
+  currentValue: z.coerce.number().min(0, "\u2265 0"),
+  purchasePrice: z.coerce.number().min(0, "\u2265 0"),
+  mortgageBalance: z.coerce.number().min(0, "\u2265 0"),
+  interestRate: z.coerce.number().min(0, "\u2265 0").max(30, "\u2264 30%"),
+  rentalIncome: z.coerce.number().min(0, "\u2265 0"),
+  mortgagePayment: z.coerce.number().min(0, "\u2265 0"),
+  propertyTax: z.coerce.number().min(0, "\u2265 0"),
+  insurance: z.coerce.number().min(0, "\u2265 0"),
+  maintenance: z.coerce.number().min(0, "\u2265 0"),
+  hoa: z.coerce.number().min(0, "\u2265 0"),
+  sellingCostsPercent: z.coerce.number().min(0).max(100, "0 \u2013 100"),
+  appreciationRatePercent: z.coerce.number().min(0).max(100, "0 \u2013 100"),
 });
 
 export type PropertyData = z.infer<typeof propertySchema>;

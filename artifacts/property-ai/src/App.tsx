@@ -211,7 +211,7 @@ function ExportButton({
 
 function Home({ isDemoMode }: { isDemoMode: boolean }) {
   const { exitDemoMode } = useAuth();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [mode, setMode] = useState<"analyze" | "compare">("analyze");
   const [showAmortization, setShowAmortization] = useState(true);
   const [showBreakEven, setShowBreakEven] = useState(true);
@@ -239,7 +239,7 @@ function Home({ isDemoMode }: { isDemoMode: boolean }) {
     saveStatus,
     dbError,
     flushPending,
-  } = usePortfolio({ demo: isDemoMode });
+  } = usePortfolio({ demo: isDemoMode, lang });
 
   const singleResults = useMemo(() => calculatePropertyMetrics(singleData), [singleData]);
   const amortizationSummary = useMemo(() => generateAmortization(singleData), [singleData]);
@@ -256,7 +256,7 @@ function Home({ isDemoMode }: { isDemoMode: boolean }) {
     setExportingAnalyze(true);
     setTimeout(() => {
       try {
-        exportSinglePropertyPdf(singleName || "My Property", singleData, singleResults, amortizationSummary);
+        exportSinglePropertyPdf(singleName || t("myProperty"), singleData, singleResults, amortizationSummary, lang);
       } finally {
         setExportingAnalyze(false);
       }
@@ -273,7 +273,8 @@ function Home({ isDemoMode }: { isDemoMode: boolean }) {
             name: p.name,
             data: p.data,
             results: calculatePropertyMetrics(p.data),
-          }))
+          })),
+          lang
         );
       } finally {
         setExportingCompare(false);
@@ -348,7 +349,7 @@ function Home({ isDemoMode }: { isDemoMode: boolean }) {
       {!loading && dbError && dbError !== "setup_required" && (
         <div className="m-6 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-5 flex items-center gap-3">
           <AlertCircle className="h-5 w-5 text-rose-400 shrink-0" />
-          <p className="text-sm text-rose-300">Database error: {dbError}</p>
+          <p className="text-sm text-rose-300">{t("databaseError")}: {dbError}</p>
         </div>
       )}
 
